@@ -35,8 +35,21 @@ if (host !== '127.0.0.1' && host !== 'localhost' && accessKey.length < 16) {
   process.exit(1);
 }
 
-const send = (res, code, body, type = 'application/json') => {
-  res.writeHead(code, { 'Content-Type': type + '; charset=utf-8', 'Cache-Control': 'no-store' });
+// The only files served from public/: a fixed list, so no request can reach anything else.
+const STATIC = {
+  '/': ['index.html', 'text/html'],
+  '/index.html': ['index.html', 'text/html'],
+  '/phone': ['phone.html', 'text/html'],
+  '/settings': ['settings.html', 'text/html'],
+  '/app.css': ['app.css', 'text/css'],
+  '/app.js': ['app.js', 'text/javascript'],
+};
+
+let version = '';
+try { version = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8').replace(/^﻿/, '')).version || ''; } catch (_) { /* optional */ }
+
+const send = (res, code, body, type = 'application/json', cache = 'no-store') => {
+  res.writeHead(code, { 'Content-Type': type + '; charset=utf-8', 'Cache-Control': cache });
   res.end(typeof body === 'string' ? body : JSON.stringify(body));
 };
 
@@ -77,8 +90,9 @@ async function handle(req, res) {
   }
   const cfg = config.get(); // re-read each request so settings changes apply immediately
 
-  if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/index.html')) {
-    return send(res, 200, fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8'), 'text/html');
+  if (req.method === 'GET' && Object.prototype.hasOwnProperty.call(STATIC, url.pathname)) {
+    const [file, type] = STATIC[url.pathname];
+    return send(res, 200, fs.readFileSync(path.join(__dirname, 'public', file), 'utf8'), type, type === 'text/html' ? 'no-store' : 'no-cache');
   }
   if (req.method === 'GET' && url.pathname === '/api/profiles') return send(res, 200, await buildProfiles(cfg));
   if (req.method === 'GET' && url.pathname === '/api/audio-devices') {
@@ -86,7 +100,7 @@ async function handle(req, res) {
   }
 
   if (url.pathname === '/api/settings') {
-    if (req.method === 'GET') return send(res, 200, { ...config.describe(), canEdit: local });
+    if (req.method === 'GET') return send(res, 200, { ...config.describe(), canEdit: local, version });
     if (req.method === 'POST') {
       // These paths end up being executed, so only this PC may change them.
       if (!local) return send(res, 403, { error: 'Settings can only be changed from the PC running DisplayDeck.' });
@@ -96,7 +110,7 @@ async function handle(req, res) {
       } catch (e) {
         return send(res, 400, { error: e.message });
       }
-      return send(res, 200, { ...config.describe(), canEdit: true });
+      return send(res, 200, { ...config.describe(), canEdit: true, version });
     }
   }
 

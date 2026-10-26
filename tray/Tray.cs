@@ -279,7 +279,7 @@ namespace DisplayDeck
             open.Font = new Font(open.Font, FontStyle.Bold);
             open.Click += delegate { OpenPage(); };
             menu.Items.Add(open);
-            menu.Items.Add(new ToolStripSeparator());
+            AddSeparator();
 
             List<ProfileItem> snapshot;
             lock (gate) { snapshot = new List<ProfileItem>(profiles); }
@@ -298,15 +298,14 @@ namespace DisplayDeck
                 menu.Items.Add(mi);
             }
 
-            menu.Items.Add(new ToolStripSeparator());
-            menu.Items.Add(new ToolStripSeparator());
+            AddSeparator();
             ToolStripMenuItem saveLayout = new ToolStripMenuItem("Save current layout...");
             saveLayout.Click += delegate { OpenPage("#save"); };
             menu.Items.Add(saveLayout);
             ToolStripMenuItem undo = new ToolStripMenuItem("Undo layout change");
             undo.Click += delegate { UndoAsync(); };
             menu.Items.Add(undo);
-            menu.Items.Add(new ToolStripSeparator());
+            AddSeparator();
             ToolStripMenuItem lan = new ToolStripMenuItem("Allow other devices (phone)");
             lan.Checked = LanEnabled();
             lan.Click += delegate { SetLan(!LanEnabled()); };
@@ -314,7 +313,7 @@ namespace DisplayDeck
             if (lan.Checked)
             {
                 ToolStripMenuItem qr = new ToolStripMenuItem("Show phone QR code");
-                qr.Click += delegate { OpenPage("#phone"); };
+                qr.Click += delegate { OpenPage("phone"); };
                 menu.Items.Add(qr);
                 ToolStripMenuItem link = new ToolStripMenuItem("Copy phone link");
                 link.Click += delegate { CopyPhoneLink(); };
@@ -330,16 +329,26 @@ namespace DisplayDeck
                     menu.Items.Add(fw);
                 }
             }
-            ToolStripMenuItem auto =new ToolStripMenuItem("Start with Windows");
+            AddSeparator();
+            ToolStripMenuItem auto = new ToolStripMenuItem("Start with Windows");
             auto.Checked = AutoStartEnabled();
             auto.Click += delegate { SetAutoStart(!AutoStartEnabled()); };
             menu.Items.Add(auto);
             ToolStripMenuItem settings = new ToolStripMenuItem("Settings...");
-            settings.Click += delegate { OpenPage("#settings"); };
+            settings.Click += delegate { OpenPage("settings"); };
             menu.Items.Add(settings);
+            AddSeparator();
             ToolStripMenuItem quit = new ToolStripMenuItem("Quit");
             quit.Click += delegate { Quit(); };
             menu.Items.Add(quit);
+        }
+
+        // Adds a separator only between two items: never first, never twice in a row.
+        void AddSeparator()
+        {
+            if (menu.Items.Count == 0) return;
+            if (menu.Items[menu.Items.Count - 1] is ToolStripSeparator) return;
+            menu.Items.Add(new ToolStripSeparator());
         }
 
         static bool AnyCurrent(List<ProfileItem> list)

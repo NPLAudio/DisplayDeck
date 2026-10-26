@@ -4,135 +4,78 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>DisplayDeck</title>
-<style>
-  :root { --bg:#f4f5f7; --card:#fff; --ink:#15181d; --mute:#5d6672; --line:#d9dde3; --accent:#2563eb; --on-accent:#ffffff; --accent-bg:#e8f0ff; --warn:#b45309; --warn-bg:#fff4e0; --ok:#15803d; }
-  @media (prefers-color-scheme: dark) { :root { --bg:#0f1115; --card:#181b21; --ink:#eceef2; --mute:#98a1ad; --line:#2a2f38; --accent:#6ea0ff; --on-accent:#0b1020; --accent-bg:#1b2a47; --warn:#fbbf24; --warn-bg:#35280d; --ok:#4ade80; } }
-  * { box-sizing:border-box; }
-  body { margin:0; padding:16px; background:var(--bg); color:var(--ink); font:16px/1.4 system-ui,sans-serif; max-width:640px; margin-inline:auto; }
-  h1 { font-size:1.25rem; margin:0 0 12px; }
-  h2 { font-size:1rem; margin:28px 0 8px; color:var(--mute); text-transform:uppercase; letter-spacing:.04em; }
-  .note, .status { color:var(--mute); font-size:.875rem; margin:0 0 12px; }
-  .status.err { color:var(--warn); }
-  .wrap { background:var(--card); border:2px solid var(--line); border-radius:14px; margin:0 0 12px; overflow:hidden; }
-  .wrap.hl { border-color:var(--accent); background:var(--accent-bg); }
-  .wrap.busy { opacity:.6; pointer-events:none; }
-  .card { display:block; width:100%; text-align:left; font:inherit; color:inherit; background:none; border:0; padding:14px 14px 6px; cursor:pointer; -webkit-tap-highlight-color:transparent; }
-  .card:active { opacity:.7; }
-  .audiobar { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:0 14px 12px; }
-  .audiobar .audio { margin:0; }
-  .linkbtn { font:inherit; font-size:.85rem; color:var(--accent); background:none; border:1px solid var(--accent); border-radius:8px; padding:6px 12px; min-height:36px; cursor:pointer; white-space:nowrap; }
-  dialog { width:min(92vw,420px); border:1px solid var(--line); border-radius:14px; background:var(--card); color:var(--ink); padding:16px; }
-  dialog::backdrop { background:rgba(0,0,0,.5); }
-  dialog label { display:block; font-size:.85rem; color:var(--mute); margin:12px 0 4px; }
-  dialog select, dialog input { width:100%; font:inherit; padding:10px; border-radius:8px; border:1px solid var(--line); background:var(--bg); color:var(--ink); min-height:44px; }
-  .btns { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
-  .btns button { flex:1 1 auto; font:inherit; padding:10px 14px; min-height:44px; border-radius:8px; border:1px solid var(--line); background:var(--bg); color:var(--ink); cursor:pointer; }
-  .btns button.primary { background:var(--accent); border-color:var(--accent); color:var(--on-accent); }
-  .btns button.danger { color:var(--warn); }
-  .row { display:flex; justify-content:space-between; align-items:center; gap:8px; }
-  .title { font-weight:650; font-size:1.1rem; }
-  .badge { font-size:.75rem; font-weight:600; padding:2px 8px; border-radius:99px; background:var(--accent); color:var(--on-accent); white-space:nowrap; }
-  .badge.soft { background:transparent; color:var(--accent); border:1px solid var(--accent); }
-  .warn { background:var(--warn-bg); color:var(--warn); border-radius:8px; padding:6px 10px; margin-top:8px; font-size:.85rem; }
-  svg.layout { width:100%; height:auto; margin:10px 0 6px; display:block; }
-  svg .mon { fill:var(--card); stroke:var(--mute); stroke-width:2; }
-  svg .mon.pri { fill:var(--accent-bg); stroke:var(--accent); stroke-width:3; }
-  svg text { fill:var(--ink); font:600 12px system-ui,sans-serif; }
-  svg text.sub { fill:var(--mute); font-weight:400; font-size:10px; }
-  ul.disp { list-style:none; margin:0; padding:0; font-size:.9rem; }
-  ul.disp li { padding:2px 0; }
-  .off { color:var(--mute); }
-  .audio { margin-top:8px; font-size:.9rem; color:var(--mute); }
-  .dev { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:10px 12px; margin:0 0 8px; }
-  #settings label { display:block; font-size:.85rem; color:var(--mute); margin:12px 0 4px; }
-  #settings input { width:100%; font:inherit; padding:10px; border-radius:8px; border:1px solid var(--line); background:var(--bg); color:var(--ink); min-height:44px; }
-  .pick { display:flex; gap:8px; align-items:center; }
-  .pick input { flex:1 1 auto; min-width:0; }
-  #settings .note { margin:4px 0 0; word-break:break-all; }
-  .dev code { display:block; font-size:.8rem; word-break:break-all; margin-top:4px; color:var(--mute); }
-  .dev button { font:inherit; font-size:.8rem; border:1px solid var(--line); background:transparent; color:var(--ink); border-radius:8px; padding:4px 10px; cursor:pointer; min-height:32px; }
-  .tag { font-size:.7rem; color:var(--ok); border:1px solid var(--ok); border-radius:99px; padding:1px 7px; margin-left:6px; }
-</style>
+<link rel="stylesheet" href="/app.css">
 </head>
 <body>
-<h1>DisplayDeck</h1>
+<main>
+  <div class="row" style="flex-wrap:wrap; margin-bottom:4px">
+    <button class="btn outline sm" type="button" id="saveLayoutBtn" title="Save the current display layout as a profile">Save layout</button>
+    <button class="btn ghost sm" type="button" id="undoBtn" title="Go back to the layout before the last change">Undo</button>
+    <span class="grow"></span>
+    <button class="btn ghost sm" type="button" id="toggleAll">Expand all</button>
+  </div>
+  <p id="status" class="status" role="status"></p>
+  <div id="profiles" class="stack"></div>
 
-<p id="status" class="status" role="status"></p>
-<div id="profiles"></div>
-<div class="btns" style="margin:0 0 8px">
-  <button type="button" class="linkbtn" id="saveLayoutBtn">Save current layout…</button>
-  <button type="button" class="linkbtn" id="undoBtn">Undo layout change</button>
-</div>
-
-<h2>Audio devices <span id="liveDot" class="off">(live)</span></h2>
-<p class="note">Playback devices as Windows sees them right now. Use Edit audio on a profile to choose one.</p>
-<div id="devices"></div>
-
-<h2 id="phoneHead" hidden>Phone / other devices</h2>
-<div id="phone" class="wrap" hidden style="padding:14px"></div>
-
-<h2>Settings</h2>
-<details id="settings" class="wrap" style="padding:0">
-  <summary style="padding:14px; cursor:pointer; min-height:44px">Profiles folder</summary>
-  <form id="setForm" style="padding:0 14px 14px">
-    <label for="setProfiles">Where your saved layouts live</label>
-    <div class="pick"><input id="setProfiles" autocomplete="off" spellcheck="false" placeholder="Leave empty for the default">
-      <button type="button" class="linkbtn" id="browseProfiles">Browse…</button></div>
-    <p id="setProfilesInfo" class="note"></p>
-    <p id="setMsg" class="status" role="status"></p>
-    <div class="btns">
-      <button type="submit" class="primary" id="setSave">Save</button>
-      <button type="button" id="setReset">Use default</button>
-    </div>
-  </form>
-</details>
+  <details class="card section" id="devicesSection" style="margin-top:16px">
+    <summary>
+      <span>Audio devices <span id="liveDot" class="muted small" style="font-weight:400"></span></span>
+      <span id="devicesChev"></span>
+    </summary>
+    <div class="section-body" id="devices"></div>
+  </details>
+</main>
 
 <dialog id="saveDlg">
   <form method="dialog" id="saveForm">
-    <strong>Save the current layout</strong>
-    <p class="note">Saves the displays that are on right now (arrangement, resolution, refresh rate) as a profile.</p>
-    <label for="saveName">Profile name</label>
-    <input id="saveName" autocomplete="off" maxlength="60" placeholder="Desk, Living Room, ...">
+    <h2>Save the current layout</h2>
+    <p class="card-description">Saves the displays that are on right now (arrangement, resolution, refresh rate) as a profile.</p>
+    <div class="field" style="margin-top:16px">
+      <label class="label" for="saveName">Profile name</label>
+      <input class="input" id="saveName" autocomplete="off" maxlength="60" placeholder="Desk, Living Room, ...">
+    </div>
     <p id="saveMsg" class="status err" role="status"></p>
-    <div class="btns">
-      <button type="submit" class="primary" id="saveGo">Save</button>
-      <button type="button" class="danger" id="saveReplace" hidden>Replace existing</button>
-      <button type="button" id="saveCancel">Cancel</button>
+    <div class="dialog-footer">
+      <button type="button" class="btn outline" id="saveCancel">Cancel</button>
+      <button type="button" class="btn destructive" id="saveReplace" hidden>Replace existing</button>
+      <button type="submit" class="btn" id="saveGo">Save</button>
     </div>
   </form>
 </dialog>
 
 <dialog id="audioDlg">
   <form method="dialog" id="audioForm">
-    <strong id="dlgTitle"></strong>
-    <label for="dlgDevice">Playback device</label>
-    <select id="dlgDevice"></select>
-    <label for="dlgSpatial">Spatial sound</label>
-    <select id="dlgSpatial"></select>
-    <input id="dlgCustom" placeholder="Format name or GUID" hidden>
+    <h2 id="dlgTitle">Audio</h2>
+    <p class="card-description">Applied together with the layout when you tap the profile.</p>
+    <div class="field" style="margin-top:16px">
+      <label class="label" for="dlgDevice">Playback device</label>
+      <select class="input" id="dlgDevice"></select>
+    </div>
+    <div class="field">
+      <label class="label" for="dlgSpatial">Spatial sound</label>
+      <select class="input" id="dlgSpatial"></select>
+      <input class="input" id="dlgCustom" placeholder="Format name or GUID" style="margin-top:8px" hidden>
+    </div>
     <p id="dlgMsg" class="status err" role="status"></p>
-    <div class="btns">
-      <button type="button" class="primary" id="dlgApply">Save &amp; apply now</button>
-      <button type="button" id="dlgSave">Save</button>
-      <button type="button" class="danger" id="dlgClear">Remove</button>
-      <button type="button" id="dlgCancel">Cancel</button>
+    <div class="dialog-footer">
+      <button type="button" class="btn ghost destructive" id="dlgClear">Remove</button>
+      <span class="grow"></span>
+      <button type="button" class="btn outline" id="dlgCancel">Cancel</button>
+      <button type="button" class="btn secondary" id="dlgSave">Save</button>
+      <button type="button" class="btn" id="dlgApply">Save &amp; apply</button>
     </div>
   </form>
 </dialog>
 
+<script src="/app.js"></script>
 <script>
-const $ = (id) => document.getElementById(id);
-const NS = 'http://www.w3.org/2000/svg';
-const el = (tag, props = {}, ...kids) => {
-  const n = document.createElement(tag);
-  for (const [k, v] of Object.entries(props)) k === 'class' ? (n.className = v) : k.startsWith('on') ? n.addEventListener(k.slice(2), v) : n.setAttribute(k, v);
-  kids.flat().forEach((c) => c != null && n.append(c));
-  return n;
-};
+const state = { liveMatched: false, profiles: [], busy: false, canEdit: false, devices: [] };
+
 const fmtHz = (h) => (h == null ? '' : `@${Number.isInteger(h) ? h : h.toFixed(2).replace(/0+$/, '')} Hz`);
 const fmtRes = (d) => (d.width ? `${d.width}×${d.height}` : '?');
 const spatialLabel = (s) => (s == null ? null : /^(|off|none)$/i.test(s) ? 'Spatial off' : s);
 
+// ---------- to-scale layout preview ----------
 function layoutSvg(displays) {
   const act = displays.filter((d) => d.x != null && d.width);
   if (!act.length) return null;
@@ -161,99 +104,151 @@ function layoutSvg(displays) {
   return svg;
 }
 
-function card(p) {
-  const hl = p.current || (p.lastApplied && !state.liveMatched);
-  const badges = [];
-  if (p.current) badges.push(el('span', { class: 'badge' }, 'Current'));
-  else if (p.lastApplied) badges.push(el('span', { class: 'badge soft' }, 'Last applied'));
-  const c = el('button', { class: 'card', type: 'button', onclick: () => apply(p.name, wrap) },
-    el('div', { class: 'row' }, el('span', { class: 'title' }, p.name), el('span', {}, badges)));
-  const wrap = el('div', { class: 'wrap' + (hl ? ' hl' : '') }, c);
-  if (p.error) c.append(el('div', { class: 'warn' }, `⚠ Couldn't read this profile (${p.error}). Tap still tries to apply it.`));
-  else {
-    const svg = layoutSvg(p.displays);
-    if (svg) c.append(svg);
-    c.append(el('ul', { class: 'disp' },
-      p.displays.map((d) => el('li', {}, `${d.primary ? '★ ' : ''}${d.name} — ${fmtRes(d)} ${fmtHz(d.refreshHz)}`.trim())),
-      p.disabled.map((d) => el('li', { class: 'off' }, `${d.name} — off`))));
-    if (p.warnings.length) c.append(el('div', { class: 'warn' }, '⚠ ' + p.warnings.join('; ')));
-  }
-  const a = p.audio;
-  const text = !a ? '🔊 No audio set' : a.error ? `🔊 audio.json unreadable: ${a.error}`
-    : `🔊 ${a.label || a.device || 'no device set'}${spatialLabel(a.spatial) ? ' · ' + spatialLabel(a.spatial) : ''}${a.device ? '' : ' (choose a device)'}`;
-  wrap.append(el('div', { class: 'audiobar' }, el('span', { class: 'audio' }, text),
-    el('button', { class: 'linkbtn', type: 'button', onclick: () => openAudio(p) }, 'Edit audio')));
-  return wrap;
+// ---------- profile cards: tap the header to apply, use the chevron to expand ----------
+function summaryOf(p) {
+  if (p.error) return 'Could not read this profile';
+  const names = p.displays.map((d) => d.name).join(' + ') || 'No displays';
+  const primary = p.displays.find((d) => d.primary) || p.displays[0];
+  const res = primary ? ` · ${fmtRes(primary)}${fmtHz(primary.refreshHz)}` : '';
+  const a = p.audio && !p.audio.error ? p.audio : null;
+  return names + res + (a && (a.label || a.device) ? ` · ${a.label || 'Audio set'}` : '');
 }
 
-const state = { liveMatched: false, profiles: [], busy: false };
+function profileCard(p) {
+  const isCurrent = p.current || (p.lastApplied && !state.liveMatched);
+  let open = prefs.get('open.' + p.name, false);
 
-async function api(path, opts) {
-  const r = await fetch(path, opts);
-  const j = await r.json();
-  if (!r.ok) throw new Error(j.error || r.statusText);
-  return j;
+  const badges = [];
+  if (p.current) badges.push(el('span', { class: 'badge' }, 'Current'));
+  else if (p.lastApplied) badges.push(el('span', { class: 'badge outline' }, 'Last applied'));
+
+  const applyBtn = el('button', { class: 'profile-apply', type: 'button', onclick: () => applyProfile(p.name, card) },
+    el('div', { class: 'profile-name' }, p.name, ...badges),
+    el('div', { class: 'profile-summary' }, summaryOf(p)));
+
+  const chev = icon('chevron', 'chev');
+  const toggle = el('button', { class: 'btn ghost icon sm', type: 'button', 'aria-expanded': String(open), 'aria-label': `Details for ${p.name}` }, chev);
+
+  const body = el('div', { class: 'profile-body', hidden: !open });
+  if (p.error) {
+    body.append(el('div', { class: 'alert error' }, icon('alert'), `Couldn't read this profile (${p.error}). Tapping it still tries to apply it.`));
+  } else {
+    const svg = layoutSvg(p.displays);
+    if (svg) body.append(svg);
+    body.append(el('ul', { class: 'plain' },
+      p.displays.map((d) => el('li', {}, `${d.primary ? '★ ' : ''}${d.name} — ${fmtRes(d)} ${fmtHz(d.refreshHz)}`.trim())),
+      p.disabled.map((d) => el('li', { class: 'off' }, `${d.name} — off`))));
+    if (p.warnings.length) body.append(el('div', { class: 'alert warn' }, icon('alert'), p.warnings.join('; ')));
+  }
+  const a = p.audio;
+  const audioText = !a ? 'No audio set' : a.error ? `audio.json unreadable: ${a.error}`
+    : `${a.label || a.device || 'No device chosen'}${spatialLabel(a.spatial) ? ' · ' + spatialLabel(a.spatial) : ''}`;
+  body.append(el('div', { class: 'row between' },
+    el('span', { class: 'row muted grow', style: 'min-width:0' }, icon('volume'), el('span', {}, audioText)),
+    el('button', { class: 'btn outline sm', type: 'button', onclick: () => openAudio(p) }, 'Edit audio')));
+  if (state.canEdit) {
+    body.append(el('div', {}, el('button', { class: 'btn ghost destructive sm', type: 'button', onclick: () => deleteProfile(p.name) }, icon('trash'), 'Delete profile')));
+  }
+
+  toggle.addEventListener('click', () => {
+    open = !open;
+    body.hidden = !open;
+    toggle.setAttribute('aria-expanded', String(open));
+    prefs.set('open.' + p.name, open);
+    syncToggleAll();
+  });
+
+  const card = el('div', { class: 'card' + (isCurrent ? ' current' : ''), 'data-name': p.name },
+    el('div', { class: 'profile-head' }, applyBtn, el('div', { class: 'profile-toggle' }, toggle)), body);
+  return card;
+}
+
+function syncToggleAll() {
+  const names = state.profiles.map((p) => p.name);
+  const allOpen = names.length > 0 && names.every((n) => prefs.get('open.' + n, false));
+  $('toggleAll').textContent = allOpen ? 'Collapse all' : 'Expand all';
+  $('toggleAll').hidden = names.length === 0;
+}
+$('toggleAll').addEventListener('click', () => {
+  const allOpen = state.profiles.every((p) => prefs.get('open.' + p.name, false));
+  state.profiles.forEach((p) => prefs.set('open.' + p.name, !allOpen));
+  renderProfiles();
+});
+
+function renderProfiles() {
+  $('profiles').replaceChildren(...state.profiles.map(profileCard));
+  if (!state.profiles.length) {
+    $('profiles').append(el('div', { class: 'card' }, el('div', { class: 'card-content muted' }, 'No saved layouts yet. Arrange your displays the way you want, then press "Save current layout".')));
+  }
+  syncToggleAll();
 }
 
 async function loadProfiles() {
   try {
     const { profiles, live } = await api('/api/profiles');
     state.profiles = profiles; state.liveMatched = live.matched;
-    $('profiles').replaceChildren(...profiles.map(card));
-    if (!profiles.length) $('profiles').append(el('p', { class: 'note' }, 'No saved layouts yet. Arrange your displays the way you want, then press Save current layout.'));
-    $('status').className = 'status';
-    $('status').textContent = live.available
-      ? (live.matched ? 'Live display state matches the highlighted profile.' : 'Live display state matches no saved profile; showing last applied.')
-      : 'Could not read live display state; showing last applied.';
+    renderProfiles();
+    setStatus(live.available
+      ? (live.matched ? 'The live display state matches the highlighted profile.' : 'The live display state matches no saved profile; showing the last applied one.')
+      : 'Could not read the live display state; showing the last applied profile.');
     renderDevices();
-  } catch (e) { $('status').className = 'status err'; $('status').textContent = 'Failed to load profiles: ' + e.message; }
+  } catch (e) { setStatus('Failed to load profiles: ' + e.message, 'err'); }
 }
 
-async function apply(name, node) {
+function setStatus(text, kind = '') { $('status').className = 'status ' + kind; $('status').textContent = text; }
+
+async function applyProfile(name, card) {
   if (state.busy) return;
-  state.busy = true; node.classList.add('busy');
-  $('status').className = 'status'; $('status').textContent = `Applying ${name}…`;
+  state.busy = true; card.classList.add('busy');
+  setStatus(`Applying ${name}…`);
   try {
-    const r = await api('/api/apply/' + encodeURIComponent(name), { method: 'POST' });
+    const r = await postJson('/api/apply/' + encodeURIComponent(name));
     await loadProfiles();
-    $('status').textContent = `Applied ${name}.` + (r.warnings && r.warnings.length ? ' ' + r.warnings.join('; ') + '.' : '') + (r.audio === 'failed' ? ` Audio failed: ${r.audioError}` : '');
-  } catch (e) { $('status').className = 'status err'; $('status').textContent = `Apply failed: ${e.message}`; }
-  state.busy = false; node.classList.remove('busy');
+    setStatus(`Applied ${name}.` + (r.warnings && r.warnings.length ? ' ' + r.warnings.join('; ') + '.' : '') + (r.audio === 'failed' ? ` Audio failed: ${r.audioError}` : ''),
+      r.warnings && r.warnings.length ? '' : 'ok');
+  } catch (e) { setStatus(`Apply failed: ${e.message}`, 'err'); }
+  state.busy = false; card.classList.remove('busy');
 }
 
-let devices = [];
+async function deleteProfile(name) {
+  if (!confirm(`Delete the profile "${name}"? This removes its saved layout and audio settings.`)) return;
+  try { await api('/api/profiles/' + encodeURIComponent(name), { method: 'DELETE' }); await loadProfiles(); setStatus(`Deleted ${name}.`); }
+  catch (e) { setStatus(e.message, 'err'); }
+}
+
+// ---------- audio devices ----------
+$('devicesChev').append(icon('chevron', 'chev'));
 function renderDevices() {
   const usedBy = (id) => state.profiles.filter((p) => p.audio && p.audio.device === id).map((p) => p.name);
-  $('devices').replaceChildren(...devices.map((d) => {
+  $('devices').replaceChildren(...state.devices.map((d) => {
     const users = usedBy(d.id);
-    const btn = el('button', { type: 'button', onclick: async () => {
-      try { await navigator.clipboard.writeText(d.id); btn.textContent = 'Copied'; } catch (_) { prompt('Copy this ID:', d.id); }
-      setTimeout(() => (btn.textContent = 'Copy ID'), 1200);
-    } }, 'Copy ID');
-    return el('div', { class: 'dev' },
-      el('div', { class: 'row' },
-        el('span', {}, el('strong', {}, d.name), ` · ${d.deviceName}`, d.isDefault ? el('span', { class: 'tag' }, 'default') : '', users.length ? el('span', { class: 'tag' }, 'used by ' + users.join(', ')) : ''),
+    const btn = el('button', { type: 'button', class: 'btn ghost icon sm', 'aria-label': 'Copy device id', title: 'Copy device id', onclick: async () => {
+      try { await navigator.clipboard.writeText(d.id); setStatus('Device id copied.', 'ok'); } catch (_) { prompt('Copy this ID:', d.id); }
+    } }, icon('copy'));
+    return el('div', { class: 'device' },
+      el('div', { class: 'row between' },
+        el('div', { class: 'grow' }, el('strong', {}, d.name), el('span', { class: 'muted' }, ` · ${d.deviceName}`), ' ',
+          d.isDefault ? el('span', { class: 'badge secondary' }, 'default') : '', ' ',
+          users.length ? el('span', { class: 'badge outline' }, 'used by ' + users.join(', ')) : ''),
         btn),
-      el('code', {}, d.id));
+      el('div', { class: 'mono muted', style: 'margin-top:4px' }, d.id));
   }));
-  if (!devices.length) $('devices').append(el('p', { class: 'note' }, 'No playback devices found.'));
+  if (!state.devices.length) $('devices').append(el('p', { class: 'muted' }, 'No playback devices found.'));
 }
 
 async function loadDevices() {
   try {
-    const { devices: all } = await api('/api/audio-devices');
-    const next = all.filter((d) => !d.state || d.state === 'Active');
-    $('liveDot').textContent = '(live)'; $('liveDot').className = 'off';
-    if (JSON.stringify(next) !== JSON.stringify(devices) || !$('devices').children.length) { devices = next; renderDevices(); }
-  } catch (e) { $('liveDot').textContent = '(unavailable: ' + e.message + ')'; }
+    const { devices } = await api('/api/audio-devices');
+    $('liveDot').textContent = '· live';
+    if (JSON.stringify(devices) !== JSON.stringify(state.devices) || !$('devices').children.length) { state.devices = devices; renderDevices(); }
+  } catch (e) { $('liveDot').textContent = '· unavailable: ' + e.message; }
 }
 
-// ---- audio dialog: the spatial choices come from the selected device's own format list ----
+// ---------- audio dialog: spatial choices come from the selected device's own format list ----------
 let editing = null;
 function fillSpatial(deviceId, current) {
-  const dev = devices.find((d) => d.id === deviceId);
-  const formats = dev ? dev.formats : [];
-  const names = formats.map((f) => f.name);
+  const dev = state.devices.find((d) => d.id === deviceId);
+  const names = dev ? dev.formats.map((f) => f.name) : [];
   const opts = [['off', 'Off'], ...names.map((n) => [n, n]), ['__custom', 'Other…']];
   $('dlgSpatial').replaceChildren(...opts.map(([v, t]) => el('option', { value: v }, t)));
   const cur = current || 'off';
@@ -267,7 +262,7 @@ function openAudio(p) {
   const cur = p.audio && !p.audio.error ? p.audio : {};
   $('dlgTitle').textContent = 'Audio for ' + p.name;
   $('dlgMsg').textContent = '';
-  const opts = devices.map((d) => [d.id, `${d.name} · ${d.deviceName}`]);
+  const opts = state.devices.map((d) => [d.id, `${d.name} · ${d.deviceName}`]);
   if (cur.device && !opts.some(([id]) => id === cur.device)) opts.unshift([cur.device, `${cur.label || cur.device} (not connected)`]);
   $('dlgDevice').replaceChildren(...opts.map(([v, t]) => el('option', { value: v }, t)));
   if (cur.device) $('dlgDevice').value = cur.device;
@@ -281,7 +276,7 @@ $('dlgCancel').addEventListener('click', () => $('audioDlg').close());
 async function saveAudio(body, applyNow) {
   $('dlgMsg').textContent = '';
   try {
-    await api('/api/audio-config/' + encodeURIComponent(editing.name), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, applyNow }) });
+    await postJson('/api/audio-config/' + encodeURIComponent(editing.name), { ...body, applyNow });
     $('audioDlg').close();
     await loadProfiles();
   } catch (e) { $('dlgMsg').textContent = e.message; }
@@ -296,20 +291,19 @@ $('dlgSave').addEventListener('click', () => saveAudio(dlgBody(), false));
 $('dlgApply').addEventListener('click', () => saveAudio(dlgBody(), true));
 $('dlgClear').addEventListener('click', () => saveAudio({ clear: true }, false));
 
-// ---- save the current layout as a profile / undo the last layout change ----
-const postJson = (path, body) => api(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) });
+// ---------- save the current layout / undo ----------
 function openSave() {
   $('saveName').value = ''; $('saveMsg').textContent = ''; $('saveReplace').hidden = true;
   $('saveDlg').showModal(); $('saveName').focus();
 }
 async function saveLayout(overwrite) {
   const name = $('saveName').value.trim();
-  $('saveMsg').className = 'status err'; $('saveMsg').textContent = '';
+  $('saveMsg').textContent = '';
   try {
     const r = await postJson('/api/profiles/save', { name, overwrite });
     $('saveDlg').close();
     await loadProfiles();
-    $('status').className = 'status'; $('status').textContent = `Saved “${r.name}” (${r.displays} display${r.displays === 1 ? '' : 's'}).`;
+    setStatus(`Saved “${r.name}” (${r.displays} display${r.displays === 1 ? '' : 's'}).`, 'ok');
   } catch (e) {
     $('saveMsg').textContent = e.message;
     $('saveReplace').hidden = !/already exists/i.test(e.message);
@@ -320,74 +314,23 @@ $('saveForm').addEventListener('submit', (ev) => { ev.preventDefault(); saveLayo
 $('saveReplace').addEventListener('click', () => saveLayout(true));
 $('saveCancel').addEventListener('click', () => $('saveDlg').close());
 $('undoBtn').addEventListener('click', async () => {
-  $('status').className = 'status'; $('status').textContent = 'Going back to the previous layout…';
-  try { await postJson('/api/undo-layout'); await loadProfiles(); $('status').textContent = 'Went back to the previous layout.'; }
-  catch (e) { $('status').className = 'status err'; $('status').textContent = e.message; }
+  setStatus('Going back to the previous layout…');
+  try { await postJson('/api/undo-layout'); await loadProfiles(); setStatus('Went back to the previous layout.', 'ok'); }
+  catch (e) { setStatus(e.message, 'err'); }
 });
 
-// ---- settings: just the profiles folder ----
-function describeSettings(s) {
-  const e = s.effective, lock = s.lockedByEnvironment;
-  $('setProfiles').value = s.settings.profilesDir;
-  $('setProfilesInfo').textContent = (e.profilesDirFound ? '✓ Using ' : '⚠ Not created yet: ') + e.profilesDir
-    + (lock.profilesDir ? ' (set by the PROFILES_DIR environment variable)' : '');
-  const ro = !s.canEdit;
-  ['setProfiles', 'browseProfiles', 'setSave', 'setReset'].forEach((id) => { $(id).disabled = ro; });
-  if (ro) { $('setMsg').className = 'status'; $('setMsg').textContent = 'Settings can only be changed from the PC running DisplayDeck.'; }
-}
-async function loadSettings() {
-  try { describeSettings(await api('/api/settings')); } catch (e) { $('setMsg').textContent = e.message; }
-}
-async function saveSettings(body) {
-  $('setMsg').className = 'status';
-  try {
-    describeSettings(await postJson('/api/settings', body));
-    $('setMsg').textContent = 'Saved.';
-    loadProfiles();
-  } catch (e) { $('setMsg').className = 'status err'; $('setMsg').textContent = e.message; }
-}
-$('setForm').addEventListener('submit', (ev) => { ev.preventDefault(); saveSettings({ profilesDir: $('setProfiles').value }); });
-$('browseProfiles').addEventListener('click', async () => {
-  $('setMsg').className = 'status'; $('setMsg').textContent = 'Choose a folder in the window that opened on your PC…';
-  $('browseProfiles').disabled = true;
-  try {
-    const { path } = await postJson('/api/pick-path', { initial: $('setProfiles').value, title: 'Select the folder that holds your profile files' });
-    if (path) await saveSettings({ profilesDir: path }); else $('setMsg').textContent = '';
-  } catch (e) { $('setMsg').className = 'status err'; $('setMsg').textContent = e.message; }
-  $('browseProfiles').disabled = false;
+// ---------- start ----------
+$('saveLayoutBtn').prepend(icon('plus'));
+$('undoBtn').prepend(icon('undo'));
+renderShell('profiles').then((s) => {
+  state.canEdit = !!(s && s.canEdit);
+  if (state.profiles.length) renderProfiles(); // adds the Delete buttons once we know this is the PC itself
 });
-$('setReset').addEventListener('click', () => saveSettings({ profilesDir: '' }));
-
-// ---- phone panel: QR code for the access link (only this PC is allowed to fetch it) ----
-async function loadPhone() {
-  try {
-    const p = await api('/api/phone-link');
-    $('phoneHead').hidden = $('phone').hidden = false;
-    if (!p.enabled) {
-      $('phone').replaceChildren(el('p', { class: 'note', style: 'margin:0' }, 'Turn on "Allow other devices (phone)" in the DisplayDeck tray menu to get a QR code here.'));
-    } else if (!p.link) {
-      $('phone').replaceChildren(el('p', { class: 'note', style: 'margin:0' }, 'No network connection found.'));
-    } else {
-      const holder = el('div', { style: 'background:#fff; padding:8px; border-radius:10px; width:min(70vw,260px); margin:0 auto' });
-      holder.innerHTML = p.svg; // generated by this server, not user input
-      $('phone').replaceChildren(holder,
-        el('p', { class: 'note', style: 'text-align:center; margin:10px 0 0' }, 'Scan with your phone camera. The link includes your access key, so keep it private.'),
-        el('code', { style: 'display:block; word-break:break-all; font-size:.75rem; color:var(--mute); margin-top:6px' }, p.link));
-    }
-  } catch (_) { $('phoneHead').hidden = $('phone').hidden = true; }
-}
-
-const openForHash = () => {
-  if (location.hash === '#settings') $('settings').open = true;
-  if (location.hash === '#save') openSave();
-  if (location.hash === '#phone') { loadPhone().then(() => $('phoneHead').scrollIntoView()); }
-};
-openForHash();
-window.addEventListener('hashchange', openForHash);
-
-loadProfiles(); loadDevices(); loadSettings(); loadPhone();
+loadProfiles(); loadDevices();
 setInterval(() => { if (!document.hidden) loadDevices(); }, 5000);
-document.addEventListener('visibilitychange', () => { if (!document.hidden) { loadProfiles(); loadDevices(); loadSettings(); loadPhone(); } });
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { loadProfiles(); loadDevices(); } });
+if (location.hash === '#save') openSave();
+window.addEventListener('hashchange', () => { if (location.hash === '#save') openSave(); });
 </script>
 </body>
 </html>

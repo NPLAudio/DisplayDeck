@@ -16,6 +16,9 @@ It is a single self-contained app: nothing else needs to be downloaded or instal
   refresh rate, the primary display, and a to-scale preview of the layout.
 - **Knows what is active.** It compares the live display state with every profile and marks the matching
   card **Current**. If nothing matches reliably it falls back to **Last applied** rather than guessing.
+- **Compact cards.** Each profile is a one-line card you can tap to apply. A chevron expands it to show the
+  preview, the displays and the audio settings, and **Expand all / Collapse all** handles the lot. Your
+  choices are remembered.
 - **Undo.** Every layout change remembers the previous layout, so **Undo layout change** takes you back.
 - **Audio goes with the profile.** Give each profile a playback device and a spatial format (Off, Windows
   Sonic, Dolby Atmos, DTS, ...). Both switch together. The format list is read from the device itself, so
@@ -26,6 +29,12 @@ It is a single self-contained app: nothing else needs to be downloaded or instal
   same page on your phone, protected by a private access key and limited to your home network.
 - **Friendly names.** Monitors are named from the profile, falling back to the Windows EDID name or a short
   ID, and you can override any name.
+- **Three pages.** Profiles, Phone (the QR code) and Settings each have their own page, reachable from the
+  tabs at the top or from the tray menu.
+- **Light and dark.** The interface uses [shadcn/ui](https://ui.shadcn.com) design tokens (zinc theme),
+  follows your system's light or dark setting, and has a toggle. To re-theme, paste a theme from
+  [ui.shadcn.com/themes](https://ui.shadcn.com/themes) over the two token blocks at the top of
+  `web/public/app.css`.
 
 ## Install
 

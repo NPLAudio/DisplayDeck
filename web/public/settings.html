@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Settings - DisplayDeck</title>
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<main class="stack">
+  <section class="card">
+    <div class="card-header">
+      <h2 class="card-title">Profiles folder</h2>
+      <p class="card-description">Where your saved layouts and their audio settings live.</p>
+    </div>
+    <form class="card-content" id="setForm">
+      <div class="field">
+        <label class="label" for="setProfiles">Folder</label>
+        <div class="field-row">
+          <input class="input" id="setProfiles" autocomplete="off" spellcheck="false" placeholder="Leave empty for the default">
+          <button class="btn outline" type="button" id="browseProfiles">Browse…</button>
+        </div>
+        <p id="setProfilesInfo" class="muted small" style="margin:8px 0 0; word-break:break-all"></p>
+      </div>
+      <p id="setMsg" class="status" role="status"></p>
+      <div class="row">
+        <button class="btn" type="submit" id="setSave">Save</button>
+        <button class="btn outline" type="button" id="setReset">Use default</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="card">
+    <div class="card-header">
+      <h2 class="card-title">Appearance</h2>
+      <p class="card-description">Follows your system by default.</p>
+    </div>
+    <div class="card-content">
+      <label class="label" for="themeSel">Theme</label>
+      <select class="input" id="themeSel">
+        <option value="system">System</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+      </select>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-header"><h2 class="card-title">About</h2></div>
+    <div class="card-content muted">
+      <p style="margin:0">DisplayDeck <span id="ver"></span></p>
+      <p class="small" style="margin:6px 0 0">Saved layouts are stored in the profiles folder above. Last-applied and undo information is kept in your local app data.</p>
+    </div>
+  </section>
+</main>
+
+<script src="/app.js"></script>
+<script>
+function describeSettings(s) {
+  const e = s.effective, lock = s.lockedByEnvironment;
+  $('setProfiles').value = s.settings.profilesDir;
+  $('setProfilesInfo').textContent = (e.profilesDirFound ? 'Using ' : 'Not created yet: ') + e.profilesDir
+    + (lock.profilesDir ? ' (set by the PROFILES_DIR environment variable)' : '');
+  $('ver').textContent = s.version ? 'v' + s.version : '';
+  const ro = !s.canEdit;
+  ['setProfiles', 'browseProfiles', 'setSave', 'setReset'].forEach((id) => { $(id).disabled = ro || (lock.profilesDir && id !== 'browseProfiles' ? true : false); });
+  if (ro) setMsg('Settings can only be changed from the PC running DisplayDeck.');
+}
+function setMsg(text, kind = '') { $('setMsg').className = 'status ' + kind; $('setMsg').textContent = text; }
+
+async function load() {
+  try { describeSettings(await api('/api/settings')); } catch (e) { setMsg(e.message, 'err'); }
+}
+async function save(body) {
+  setMsg('');
+  try { describeSettings(await postJson('/api/settings', body)); setMsg('Saved.', 'ok'); }
+  catch (e) { setMsg(e.message, 'err'); }
+}
+$('setForm').addEventListener('submit', (ev) => { ev.preventDefault(); save({ profilesDir: $('setProfiles').value }); });
+$('setReset').addEventListener('click', () => save({ profilesDir: '' }));
+$('browseProfiles').addEventListener('click', async () => {
+  setMsg('Choose a folder in the window that opened on your PC…');
+  $('browseProfiles').disabled = true;
+  try {
+    const { path } = await postJson('/api/pick-path', { initial: $('setProfiles').value, title: 'Select the folder that holds your profile files' });
+    if (path) await save({ profilesDir: path }); else setMsg('');
+  } catch (e) { setMsg(e.message, 'err'); }
+  $('browseProfiles').disabled = false;
+});
+
+$('themeSel').value = prefs.get('theme', 'system');
+$('themeSel').addEventListener('change', () => { prefs.set('theme', $('themeSel').value); applyTheme($('themeSel').value); });
+
+renderShell('settings');
+load();
+</script>
+</body>
+</html>

@@ -56,7 +56,8 @@ app installed). Windows may ask for administrator permission once when a spatial
 
 1. Right-click the tray icon and choose **Allow other devices (phone)**. Accept the UAC prompt if it appears;
    it adds the firewall permission.
-2. Choose **Show phone QR code**. The page shows a QR code.
+2. Choose **Show phone QR code**. The Phone page opens with the QR code (you can also reach it from the
+   **Phone** tab at the top of any page).
 3. Scan it with your phone's camera while the phone is on the same Wi-Fi or network as the PC. The phone
    opens DisplayDeck and remembers you.
 
