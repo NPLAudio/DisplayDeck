@@ -1,0 +1,10 @@
+node_modules/
+state.json
+settings.json
+*.log
+installer/stage/
+installer/build/
+installer/dist/
+installer/tools/
+installer/app.ico
+bin/

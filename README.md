@@ -1,0 +1,129 @@
+# DisplayDeck
+
+**Switch your whole desk setup with one tap.** DisplayDeck saves your monitor layouts and audio devices
+as named profiles ("Desk", "Living Room", "Den TV") and puts them behind a tray icon and a phone-friendly
+web page. One click on the PC, or one tap on your phone, and the screens, the sound output and the
+spatial format all change together.
+
+It is a single self-contained app: nothing else needs to be downloaded or installed.
+
+## What it does
+
+- **Save the layout you have right now.** Arrange your monitors in Windows the way you like, then press
+  **Save current layout** and give it a name. DisplayDeck records which displays are on, their
+  arrangement, resolution and refresh rate.
+- **One card per profile.** Each card shows which displays are on or off, each display's resolution and
+  refresh rate, the primary display, and a to-scale preview of the layout.
+- **Knows what is active.** It compares the live display state with every profile and marks the matching
+  card **Current**. If nothing matches reliably it falls back to **Last applied** rather than guessing.
+- **Undo.** Every layout change remembers the previous layout, so **Undo layout change** takes you back.
+- **Audio goes with the profile.** Give each profile a playback device and a spatial format (Off, Windows
+  Sonic, Dolby Atmos, DTS, ...). Both switch together. The format list is read from the device itself, so
+  you only see what that device supports.
+- **Tray icon.** Left-click opens the page. Right-click lists your profiles so you can apply one without
+  opening a browser. It can start with Windows.
+- **From your phone.** Turn on **Allow other devices** in the tray menu, scan the QR code, and you have the
+  same page on your phone, protected by a private access key and limited to your home network.
+- **Friendly names.** Monitors are named from the profile, falling back to the Windows EDID name or a short
+  ID, and you can override any name.
+
+## Install
+
+Download `DisplayDeck-<version>.msi` from the
+[latest release](https://github.com/NPLAudio/DisplayDeck/releases/latest) (or build it yourself, see
+[Build from source](#build-from-source)), run it, and accept the administrator prompt. DisplayDeck starts
+in the notification area and opens its page.
+
+See **[INSTALL.md](INSTALL.md)** for the full walkthrough, phone setup, troubleshooting and uninstalling.
+
+Requirements: Windows 10 or 11 (64-bit).
+
+## A quick tour
+
+1. Arrange your monitors in Windows the way you want, then choose **Save current layout...** (on the page or
+   in the tray menu) and name it. Repeat for each arrangement you use.
+2. Each saved layout appears as a card. Tap a card to apply it.
+3. Press **Edit audio** on a card to choose its playback device and spatial format. From then on applying
+   the card switches the sound too.
+4. Changed your mind? **Undo layout change** goes back to the previous layout.
+
+## How it works
+
+DisplayDeck is a small local web server (Node, no npm dependencies), a tray program, and a helper that talks
+to Windows:
+
+```
+ctl/         DisplayDeckCtl.exe source: display layouts (QueryDisplayConfig / SetDisplayConfig) and audio devices (Core Audio)
+tray/        DisplayDeck.exe source: tray icon, menu, starts the server, firewall prompt
+web/         the server and the page; parses profile files and runs the helper
+installer/   build scripts and the WiX definition for the MSI
+```
+
+- A profile is an XML file in the profiles folder (`%APPDATA%\DisplayDeck\Profiles` by default). It holds
+  the display paths and modes that were active when you saved it. Applying one remaps it onto the current
+  graphics adapters (their ids change between boots), asks Windows to validate and apply it, and reports any
+  display that is not connected instead of failing.
+- Audio settings live next to each profile as `<profile>.audio.json`, for example:
+
+  ```json
+  { "label": "Living room TV",
+    "device": "NVIDIA High Definition Audio\\Device\\SONY TV  *30\\Render",
+    "spatial": "Dolby Atmos for Home Theater" }
+  ```
+
+  `device` is the id shown on the page and `spatial` is a format name, or `"off"`.
+- The page re-scans the profile folder every time it loads, so new or edited profiles appear without
+  restarting anything.
+- The profile file format and the HTTP API are documented in [web/README.md](web/README.md).
+
+## Privacy and security
+
+- By default the server listens on `127.0.0.1` only. Nothing leaves your PC.
+- Phone access is opt-in. It listens on your network, requires a random 128-bit access key, and the firewall
+  rule only admits machines on your own subnet. Do not forward the port to the internet; for access away
+  from home use a VPN such as Tailscale.
+- Changing settings, deleting profiles and opening file dialogs are only allowed from the PC itself.
+
+## Settings and data
+
+| What | Where |
+| --- | --- |
+| Profiles, `names.json`, `*.audio.json` | `%APPDATA%\DisplayDeck\Profiles` (changeable under Settings) |
+| Last applied, previous layout, phone key | `%LOCALAPPDATA%\DisplayDeck` |
+| Program files | `C:\Program Files\DisplayDeck` |
+
+`names.json` maps a hardware ID or monitor name to a friendlier label, for example
+`{ "SNY0406": "Living Room TV" }`.
+
+Advanced overrides (environment variables): `PROFILES_DIR`, `NAMES_FILE`, `PORT`, `DISPLAYDECK_CTL`.
+
+## Build from source
+
+You need Node 20 or newer, the .NET SDK (only to fetch the WiX tool once), and Windows (the C# compiler that
+ships with Windows builds the tray program and the helper).
+
+```
+.\ctl\build.ps1         # builds bin\DisplayDeckCtl.exe and runs its self-test
+
+cd web
+npm test                # tests, including a check that no outside program is referenced
+npm start               # http://127.0.0.1:8765
+
+cd ..\installer
+dotnet tool install wix --version 5.0.2 --tool-path .\tools     # once
+.\build.ps1 -Version 2.0.0                                       # -> installer\dist\DisplayDeck-2.0.0.msi
+```
+
+The build fails if the package contains any executable other than DisplayDeck's own two and the Node.js
+runtime.
+
+## Third-party software
+
+The QR code uses a vendored copy of Kazuhiko Arase's QRCode library (MIT) via
+[qrcode-terminal](https://github.com/gtanner/qrcode-terminal) (Apache 2.0); the license is in
+`web/lib/vendor/qrcode/`. The MSI bundles the official Node.js runtime (MIT) with its license.
+Full details are in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+
+## License
+
+DisplayDeck is released under the [MIT License](LICENSE).
