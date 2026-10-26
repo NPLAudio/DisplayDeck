@@ -1,18 +1,21 @@
 # DisplayDeck brand drawing library (dot-source this file).
 #
-# The mark is three rounded "panes" in a layout: one tall pane on the left, two stacked on the right.
-# It reads as a multi-display arrangement at any size. One pane is highlighted to mean "the active layout".
+# The mark is two "screens" offset diagonally: an outlined one behind and a solid, lit one in front. It reads as
+# a multi-display arrangement at any size, and the lit screen means "the active layout". The accent is emerald,
+# the same green the Stream Deck keys use for "active".
 #
 # Everything is drawn at 4x and scaled down, so small sizes stay crisp.
 Add-Type -AssemblyName System.Drawing
 
 $script:BrandColors = @{
-    Ink      = [System.Drawing.Color]::FromArgb(255, 24, 24, 27)      # zinc-900
-    White    = [System.Drawing.Color]::FromArgb(255, 250, 250, 250)   # zinc-50
-    Dim      = [System.Drawing.Color]::FromArgb(150, 250, 250, 250)   # white, 60%
-    BlueTop  = [System.Drawing.Color]::FromArgb(255, 59, 130, 246)    # blue-500
-    BlueBot  = [System.Drawing.Color]::FromArgb(255, 29, 78, 216)     # blue-700
-    Green    = [System.Drawing.Color]::FromArgb(255, 34, 197, 94)     # green-500 (the "active" accent)
+    Ink       = [System.Drawing.Color]::FromArgb(255, 24, 24, 27)      # zinc-900
+    InkTop    = [System.Drawing.Color]::FromArgb(255, 44, 44, 49)      # tile gradient top
+    White     = [System.Drawing.Color]::FromArgb(255, 250, 250, 250)   # zinc-50
+    Outline   = [System.Drawing.Color]::FromArgb(190, 250, 250, 250)   # white, 75%
+    Dim       = [System.Drawing.Color]::FromArgb(150, 250, 250, 250)   # white, 60%
+    GreenTop  = [System.Drawing.Color]::FromArgb(255, 52, 211, 153)    # emerald-400
+    GreenBot  = [System.Drawing.Color]::FromArgb(255, 5, 150, 105)     # emerald-600
+    Green     = [System.Drawing.Color]::FromArgb(255, 34, 197, 94)     # green-500 (the "active" accent)
 }
 
 function New-RoundedPath([double]$x, [double]$y, [double]$w, [double]$h, [double]$r) {
@@ -26,26 +29,30 @@ function New-RoundedPath([double]$x, [double]$y, [double]$w, [double]$h, [double
     $p
 }
 
-# Fills the three panes inside the square box (x, y, size). $colors = left, top-right, bottom-right.
-function Draw-Panes($g, [double]$x, [double]$y, [double]$size, $colors) {
-    $gap = 0.08 * $size
-    $w = $size
-    $leftW = 0.44 * $w
-    $rightX = $x + $leftW + $gap
-    $rightW = $w - $leftW - $gap
-    $half = ($size - $gap) / 2
-    $r = 0.10 * $size
-    $rects = @(
-        @($x, $y, $leftW, $size),
-        @($rightX, $y, $rightW, $half),
-        @($rightX, ($y + $half + $gap), $rightW, $half)
-    )
-    for ($i = 0; $i -lt 3; $i++) {
-        $b = New-Object System.Drawing.SolidBrush $colors[$i]
-        $path = New-RoundedPath $rects[$i][0] $rects[$i][1] $rects[$i][2] $rects[$i][3] $r
-        $g.FillPath($b, $path)
-        $b.Dispose(); $path.Dispose()
+# Draws the two screens inside the square box (x, y, size).
+#   $back  = color of the outlined screen behind (top-left)
+#   $front = a Color, or an array of two Colors for a top-to-bottom gradient, for the solid screen (bottom-right)
+function Draw-Screens($g, [double]$x, [double]$y, [double]$size, [System.Drawing.Color]$back, $front) {
+    $w = 0.62 * $size; $h = 0.39 * $size
+    $stroke = 0.075 * $size; $r = 0.075 * $size
+
+    # back screen: outline, inset by half the stroke so the outside edge lands on the box
+    $bx = $x; $by = $y + 0.06 * $size
+    $pen = New-Object System.Drawing.Pen $back, $stroke
+    $path = New-RoundedPath ($bx + $stroke / 2) ($by + $stroke / 2) ($w - $stroke) ($h - $stroke) ($r - $stroke / 2)
+    $g.DrawPath($pen, $path)
+    $pen.Dispose(); $path.Dispose()
+
+    # front screen: solid (or gradient)
+    $fx = $x + 0.38 * $size; $fy = $y + 0.52 * $size
+    if ($front -is [array]) {
+        $brush = New-Object System.Drawing.Drawing2D.LinearGradientBrush ((New-Object System.Drawing.PointF 0, $fy), (New-Object System.Drawing.PointF 0, ($fy + $h)), $front[0], $front[1])
+    } else {
+        $brush = New-Object System.Drawing.SolidBrush $front
     }
+    $path = New-RoundedPath $fx $fy $w $h $r
+    $g.FillPath($brush, $path)
+    $brush.Dispose(); $path.Dispose()
 }
 
 # Strokes a simple glyph by name inside the square box (x, y, size): 'next', 'undo', 'speaker'.
@@ -96,16 +103,18 @@ function New-BrandBitmap([int]$size, [scriptblock]$draw) {
     $out
 }
 
-# The app icon: blue tile, three panes, the top-right one fully lit (the "active layout").
+# The app icon: dark tile, an outlined screen behind and an emerald, lit screen in front.
 function New-AppIconBitmap([int]$size) {
     New-BrandBitmap $size {
         param($g, $S)
         $tile = New-RoundedPath 0 0 $S $S (0.225 * $S)
-        $grad = New-Object System.Drawing.Drawing2D.LinearGradientBrush ((New-Object System.Drawing.PointF 0, 0), (New-Object System.Drawing.PointF 0, $S), $script:BrandColors.BlueTop, $script:BrandColors.BlueBot)
+        $grad = New-Object System.Drawing.Drawing2D.LinearGradientBrush ((New-Object System.Drawing.PointF 0, 0), (New-Object System.Drawing.PointF 0, $S), $script:BrandColors.InkTop, $script:BrandColors.Ink)
         $g.FillPath($grad, $tile)
-        $box = 0.54 * $S; $off = ($S - $box) / 2
-        Draw-Panes $g $off $off $box @($script:BrandColors.Dim, $script:BrandColors.White, $script:BrandColors.Dim)
-        $grad.Dispose(); $tile.Dispose()
+        $edge = New-Object System.Drawing.Pen ([System.Drawing.Color]::FromArgb(40, 255, 255, 255)), ([Math]::Max(1, 0.012 * $S))
+        $g.DrawPath($edge, $tile)
+        $box = 0.64 * $S; $off = ($S - $box) / 2
+        Draw-Screens $g $off $off $box $script:BrandColors.Outline @($script:BrandColors.GreenTop, $script:BrandColors.GreenBot)
+        $grad.Dispose(); $edge.Dispose(); $tile.Dispose()
     }
 }
 
@@ -114,19 +123,19 @@ function New-GlyphBitmap([int]$size, [string]$name, [System.Drawing.Color]$color
     New-BrandBitmap $size {
         param($g, $S)
         $m = 0.06 * $S; $box = $S - 2 * $m
-        if ($name -eq 'panes') { Draw-Panes $g $m $m $box @($color, $color, $color) }
+        if ($name -eq 'screens') { Draw-Screens $g $m $m $box $color $color }
         else { Draw-Glyph $g $name $m $m $box $color }
     }
 }
 
-# A Stream Deck key face: dark square with a centered glyph (and an optional accent pane for the layout mark).
+# A Stream Deck key face: dark square with a centered glyph (the layout mark carries the green "active" screen).
 function New-KeyFaceBitmap([int]$size, [string]$name) {
     New-BrandBitmap $size {
         param($g, $S)
         $g.Clear($script:BrandColors.Ink)
-        $box = 0.46 * $S; $off = ($S - $box) / 2
-        if ($name -eq 'panes') { Draw-Panes $g $off $off $box @($script:BrandColors.Dim, $script:BrandColors.Green, $script:BrandColors.Dim) }
-        else { Draw-Glyph $g $name $off $off $box $script:BrandColors.White }
+        $box = 0.52 * $S; $off = ($S - $box) / 2
+        if ($name -eq 'screens') { Draw-Screens $g $off $off $box $script:BrandColors.Outline $script:BrandColors.Green }
+        else { Draw-Glyph $g $name ($S * 0.27) ($S * 0.27) ($S * 0.46) $script:BrandColors.White }
     }
 }
 

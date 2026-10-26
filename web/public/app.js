@@ -65,18 +65,18 @@ function applyTheme(choice) {
 applyTheme(prefs.get('theme', 'system')); // before first paint, to avoid a flash
 function isDark() { return document.documentElement.classList.contains('dark') || (!document.documentElement.classList.contains('light') && matchMedia('(prefers-color-scheme: dark)').matches); }
 
-// The DisplayDeck mark: three panes in a blue tile, the top-right one lit. Same shapes as favicon.svg.
+// The DisplayDeck mark: an outlined screen behind a lit emerald one, on a dark tile. Same shapes as favicon.svg.
 function logo(size = 26) {
   const s = document.createElementNS(NS, 'svg');
   s.setAttribute('viewBox', '0 0 64 64');
   s.setAttribute('width', String(size));
   s.setAttribute('height', String(size));
   s.setAttribute('aria-hidden', 'true');
-  s.innerHTML = '<defs><linearGradient id="dd-g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3b82f6"/><stop offset="1" stop-color="#1d4ed8"/></linearGradient></defs>'
-    + '<rect width="64" height="64" rx="14.4" fill="url(#dd-g)"/>'
-    + '<g fill="#fafafa"><rect x="14.72" y="14.72" width="15.21" height="34.56" rx="3.46" fill-opacity=".59"/>'
-    + '<rect x="32.69" y="14.72" width="16.59" height="15.9" rx="3.46"/>'
-    + '<rect x="32.69" y="33.38" width="16.59" height="15.9" rx="3.46" fill-opacity=".59"/></g>';
+  s.innerHTML = '<defs><linearGradient id="dd-t" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2c2c31"/><stop offset="1" stop-color="#18181b"/></linearGradient>'
+    + '<linearGradient id="dd-e" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#34d399"/><stop offset="1" stop-color="#059669"/></linearGradient></defs>'
+    + '<rect x=".4" y=".4" width="63.2" height="63.2" rx="14" fill="url(#dd-t)" stroke="#fff" stroke-opacity=".16" stroke-width=".8"/>'
+    + '<rect x="13.06" y="15.51" width="22.33" height="12.9" rx="1.54" fill="none" stroke="#fafafa" stroke-opacity=".75" stroke-width="3.07"/>'
+    + '<rect x="27.09" y="32.82" width="25.4" height="15.97" rx="3.07" fill="url(#dd-e)"/>';
   return s;
 }
 

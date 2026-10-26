@@ -9,13 +9,12 @@ export type KeyFace = {
 	icon?: keyof typeof ICONS;
 };
 
-// Pictograms drawn in a 100x100 box, the same family as the plugin and app icons: three "panes" for a layout
-// (the top-right one lit), and simple strokes for the rest.
+// Pictograms drawn in a 100x100 box, the same family as the plugin and app icons: two offset "screens" for a
+// layout (an outlined one behind, a lit one in front), and simple strokes for the rest.
 const ICONS = {
 	layout:
-		'<rect x="0" y="0" width="44" height="100" rx="10" fill="currentColor" fill-opacity=".6"/>' +
-		'<rect x="52" y="0" width="48" height="46" rx="10" fill="#22c55e"/>' +
-		'<rect x="52" y="54" width="48" height="46" rx="10" fill="currentColor" fill-opacity=".6"/>',
+		'<rect x="3.75" y="9.75" width="54.5" height="31.5" rx="3.75" fill="none" stroke="currentColor" stroke-opacity=".75" stroke-width="7.5"/>' +
+		'<rect x="38" y="52" width="62" height="39" rx="7.5" fill="#22c55e"/>',
 	next:
 		'<path d="M12 50h74M58 22l29 28-29 28" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>',
 	undo:

@@ -122,13 +122,13 @@ test("api marks an unreachable server as offline", async () => {
 	await assert.rejects(() => api.status(), (e: unknown) => e instanceof DisplayDeckError && e.offline === true && /not running/.test(e.message));
 });
 
-test("every key pictogram renders, and the layout pictogram carries the green active pane", () => {
+test("every key pictogram renders, and the layout pictogram carries the green active screen", () => {
 	const decode = (uri: string) => decodeURIComponent(uri.replace("data:image/svg+xml;charset=utf8,", ""));
 	for (const icon of ["layout", "next", "undo", "speaker"] as const) {
 		const svg = decode(keyImage({ label: "X", icon }));
 		assert.ok(svg.includes('transform="translate(44,14) scale(0.56)"'), `${icon} is placed in the key`);
 	}
 	const layout = decode(keyImage({ label: "Choose a profile", icon: "layout" }));
-	assert.equal((layout.match(/<rect x="/g) ?? []).length, 3, "three panes (the key background has no x attribute)");
-	assert.ok(layout.includes("#22c55e"), "one pane is the green active accent");
+	assert.equal((layout.match(/<rect x="/g) ?? []).length, 2, "two screens (the key background has no x attribute)");
+	assert.ok(layout.includes("#22c55e"), "the front screen is the green active accent");
 });
