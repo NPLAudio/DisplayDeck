@@ -112,6 +112,16 @@ Using a Stream Deck +? Drag **Profile dial** or **Audio dial** onto a dial: turn
 The keys, dials and info bar need DisplayDeck running on the same PC; if it isn't, they show a warning mark. A key's green ring
 means that profile (or audio device) is the active one right now.
 
+## 6. Control it from HomeKit (optional)
+
+If you run [Homebridge](https://homebridge.io) on a computer or device on your network, the [homebridge-displaydeck](https://github.com/NPLAudio/homebridge-displaydeck) plugin gives each profile its own HomeKit switch.
+
+1. Turn on **Allow other devices (phone)** in the tray menu (see step 4).
+2. On the **Phone** page, note the PC's IP address and the access key (the long string after `?key=` in the link).
+3. Install the plugin in Homebridge and enter the address and key. The plugin's README has the details.
+
+The PC must be on for the switches to work. When it is off they show "No Response" in the Home app.
+
 ## Start with Windows
 
 DisplayDeck turns on **Start with Windows** the first time it runs. To change that, right-click the tray icon

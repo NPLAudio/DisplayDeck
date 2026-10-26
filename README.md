@@ -180,6 +180,10 @@ Good to know:
 - Some monitors answer unreliably, for example by repeating their last reply when asked for their power state. DisplayDeck double-checks what it can and hides a reading it cannot trust, but still offers the buttons if the monitor lists the feature.
 - Windows refuses to hand out controls for some NVIDIA-driven displays, so DisplayDeck talks to those through the graphics card directly. This uses a file the NVIDIA driver already provides; nothing extra is installed.
 
+## HomeKit (Homebridge)
+
+The [homebridge-displaydeck](https://github.com/NPLAudio/homebridge-displaydeck) plugin adds one HomeKit switch for every saved profile, so "Hey Siri, turn on Living Room" or a Home app automation can switch your screens and sound. The switches appear and disappear on their own as you add and delete profiles, and the active profile's switch reads on. It needs **Allow other devices (phone)** turned on, and the access key from the Phone page link. Setup steps are in the plugin's README.
+
 ## Stream Deck
 
 If Stream Deck 7.6 or newer is installed, the tray menu has **Install Stream Deck plugin...**. Choose it and
