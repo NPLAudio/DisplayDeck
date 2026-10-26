@@ -40,7 +40,9 @@
     </Feature>
 
     <!-- Stop a running tray and its bundled node.exe so files can be replaced or removed.
-         Immediate, so it runs in the user's session where the tray lives. -->
+         Immediate, so it runs in the user's session where the tray lives. It is scheduled before InstallValidate,
+         because that is where Windows Installer looks for files in use and shows its "close these applications" prompt;
+         stopping them afterwards is too late and the user gets asked about DisplayDeck and Node.js. -->
     <CustomAction Id="StopApp" Directory="TARGETDIR" Return="ignore"
                   ExeCommand="powershell.exe -NoProfile -NonInteractive -WindowStyle Hidden -Command &quot;Get-Process DisplayDeck,node -ErrorAction SilentlyContinue | Where-Object { $_.Path -like '*\DisplayDeck\*' } | Stop-Process -Force&quot;" />
     <!-- Start the tray through explorer.exe so it runs with the user's normal rights even when
@@ -59,7 +61,7 @@
                   ExeCommand="netsh.exe advfirewall firewall add rule name=&quot;DisplayDeck&quot; dir=in action=allow protocol=TCP localport=8765 profile=any remoteip=localsubnet program=&quot;[INSTALLFOLDER]node\node.exe&quot;" />
 
     <InstallExecuteSequence>
-      <Custom Action="StopApp" After="InstallValidate" Condition="1" />
+      <Custom Action="StopApp" Before="InstallValidate" Condition="1" />
       <Custom Action="FirewallRemove" Before="RemoveFiles" Condition="REMOVE~=&quot;ALL&quot;" />
       <Custom Action="FirewallRemoveBeforeAdd" After="InstallFiles" Condition="NOT REMOVE" />
       <Custom Action="FirewallAdd" After="FirewallRemoveBeforeAdd" Condition="NOT REMOVE" />
