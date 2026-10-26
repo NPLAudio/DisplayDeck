@@ -21,6 +21,10 @@ It is a single self-contained app: nothing else needs to be downloaded or instal
 - **Compact cards.** Each profile is a one-line card you can tap to apply. A chevron expands it to show the
   preview, the displays and the audio settings, and **Expand all / Collapse all** handles the lot. Your
   choices are remembered.
+- **Build and edit layouts.** Drag your screens around on a canvas, turn displays on or off, pick each one's resolution,
+  refresh rate and rotation, and choose the primary display. Start from a saved profile ("Duplicate and edit"), from the
+  screens as they are now, or from a blank canvas. **Try layout** applies it for real and goes back by itself unless you
+  keep it.
 - **Undo.** Every layout change remembers the previous layout, so **Undo layout change** takes you back.
 - **Audio goes with the profile.** Give each profile a playback device and a spatial format (Off, Windows
   Sonic, Dolby Atmos, DTS, ...). Both switch together. The format list is read from the device itself, so
@@ -119,6 +123,23 @@ installer/   build scripts and the WiX definition for the MSI
 - The page re-scans the profile folder every time it loads, so new or edited profiles appear without
   restarting anything.
 - The profile file format and the HTTP API are documented in [web/README.md](web/README.md).
+
+### 5. Build or edit a layout
+
+You don't have to arrange your monitors in Windows first. The layout editor does it for you.
+
+1. Press **New layout** at the top of the Profiles page to start from a blank canvas, or open a card and press **Edit layout** to start from a copy of that profile.
+2. Drag the screens into place. Edges snap together, and a red outline means two screens overlap.
+3. Tap a screen to change its resolution, refresh rate or rotation, make it the primary display, or turn it off. Displays that are off appear in a list underneath, with an **Add to layout** button.
+4. Press **Check** to ask Windows whether it accepts the layout, without changing anything.
+5. Press **Try layout** to see it for real. A banner counts down 15 seconds and the screens go back to how they were unless you press **Keep**. If a layout leaves your screens blank, just wait.
+6. Type a name and press **Save profile**. Editing a copy keeps the original's audio settings.
+
+![The layout editor with three screens on the canvas and the settings for the selected one](docs/images/editor-layout.png)
+
+![Trying a layout: a banner counts down and offers Keep or Go back now](docs/images/editor-try.png)
+
+A display that is switched off right now can't list its exact modes, so the editor offers the sizes your saved profiles used and some common ones. **Check** and **Try layout** confirm that Windows accepts your choice. The editor only works from the PC itself, not from a phone.
 
 ## Stream Deck
 

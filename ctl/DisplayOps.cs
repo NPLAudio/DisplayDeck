@@ -66,7 +66,7 @@ namespace DisplayDeck.Ctl
             return "display " + targetId.ToString(CultureInfo.InvariantCulture);
         }
 
-        static MonitorInfo MonitorFor(Profile saved, uint targetId)
+        public static MonitorInfo MonitorFor(Profile saved, uint targetId)
         {
             foreach (MonitorInfo m in saved.Monitors)
             {
@@ -165,14 +165,22 @@ namespace DisplayDeck.Ctl
                 }
                 np.sourceInfo.modeInfoIdx = sIdx;
 
-                ModeInfo savedTgt = FindMode(saved, DisplayNative.MODE_TARGET, md.SavedPath.targetInfo.id, md.SavedPath.targetInfo.modeInfoIdx);
-                ModeInfo tm = new ModeInfo();
-                tm.infoType = DisplayNative.MODE_TARGET;
-                tm.id = np.targetInfo.id;
-                tm.adapterId = np.targetInfo.adapterId;
-                tm.targetMode = savedTgt.targetMode;
-                np.targetInfo.modeInfoIdx = (uint)outModes.Count;
-                outModes.Add(tm);
+                // Edited layouts leave the signal timing out so Windows picks it for the chosen size and refresh rate.
+                bool hasTarget = true;
+                ModeInfo savedTgt = default(ModeInfo);
+                try { savedTgt = FindMode(saved, DisplayNative.MODE_TARGET, md.SavedPath.targetInfo.id, md.SavedPath.targetInfo.modeInfoIdx); }
+                catch (CtlException) { if (md.SavedPath.targetInfo.modeInfoIdx != DisplayNative.IDX_INVALID) throw; hasTarget = false; }
+                if (hasTarget)
+                {
+                    ModeInfo tm = new ModeInfo();
+                    tm.infoType = DisplayNative.MODE_TARGET;
+                    tm.id = np.targetInfo.id;
+                    tm.adapterId = np.targetInfo.adapterId;
+                    tm.targetMode = savedTgt.targetMode;
+                    np.targetInfo.modeInfoIdx = (uint)outModes.Count;
+                    outModes.Add(tm);
+                }
+                else np.targetInfo.modeInfoIdx = DisplayNative.IDX_INVALID;
 
                 outPaths.Add(np);
             }
@@ -180,7 +188,7 @@ namespace DisplayDeck.Ctl
             modes = outModes.ToArray();
         }
 
-        static ModeInfo FindMode(Profile p, uint type, uint id, uint hintIdx)
+        public static ModeInfo FindMode(Profile p, uint type, uint id, uint hintIdx)
         {
             if (hintIdx != DisplayNative.IDX_INVALID && hintIdx < p.Modes.Count && p.Modes[(int)hintIdx].infoType == type)
                 return p.Modes[(int)hintIdx];

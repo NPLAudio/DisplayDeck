@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const { buildProfiles, scanFiles, writeLastApplied, currentStatus } = require('./lib/profiles');
+const editor = require('./lib/editor');
 const system = require('./lib/system');
 const { createConfig } = require('./lib/settings');
 const { qrSvg } = require('./lib/qr');
@@ -41,6 +42,7 @@ const STATIC = {
   '/index.html': ['index.html', 'text/html'],
   '/phone': ['phone.html', 'text/html'],
   '/settings': ['settings.html', 'text/html'],
+  '/editor': ['editor.html', 'text/html'],
   '/app.css': ['app.css', 'text/css'],
   '/app.js': ['app.js', 'text/javascript'],
   '/favicon.svg': ['favicon.svg', 'image/svg+xml'],
@@ -59,7 +61,7 @@ const sameOrigin = (req) => !req.headers.origin || new URL(req.headers.origin).h
 function readBody(req) {
   return new Promise((resolve, reject) => {
     let data = '';
-    req.on('data', (c) => { data += c; if (data.length > 10000) { reject(new Error('Body too large')); req.destroy(); } });
+    req.on('data', (c) => { data += c; if (data.length > 50000) { reject(new Error('Body too large')); req.destroy(); } });
     req.on('end', () => { try { resolve(data ? JSON.parse(data) : {}); } catch (_) { reject(new Error('Invalid JSON')); } });
     req.on('error', reject);
   });
@@ -191,6 +193,33 @@ async function handle(req, res) {
     if (!sameOrigin(req)) return send(res, 403, { error: 'Cross-origin request refused' });
     const layout = await system.undoLayout(cfg);
     return send(res, 200, { ok: true, warnings: layout.skipped || [] });
+  }
+
+  // The layout editor. It changes what is on screen and writes profile files, so only this PC may use it.
+  if (url.pathname.startsWith('/api/editor/')) {
+    if (!local) return send(res, 403, { error: 'The layout editor only works on the PC running DisplayDeck.' });
+    const fail = (e) => send(res, e.status || 400, { error: e.message });
+    if (req.method === 'GET' && url.pathname === '/api/editor/state') {
+      try { return send(res, 200, await editor.editorState(cfg, url.searchParams.get('from') || null, url.searchParams.get('live') === '1')); } catch (e) { return fail(e); }
+    }
+    if (req.method === 'GET' && url.pathname === '/api/editor/test') return send(res, 200, editor.testStatus());
+    if (req.method === 'POST') {
+      if (!sameOrigin(req)) return send(res, 403, { error: 'Cross-origin request refused' });
+      const body = await readBody(req);
+      try {
+        if (url.pathname === '/api/editor/validate') return send(res, 200, await editor.validate(cfg, body.layout, body.base || null));
+        if (url.pathname === '/api/editor/test') return send(res, 200, await editor.startTest(cfg, body.layout, body.base || null, body.seconds));
+        if (url.pathname === '/api/editor/keep') return send(res, 200, await editor.keep());
+        if (url.pathname === '/api/editor/revert') return send(res, 200, await editor.revert());
+        if (url.pathname === '/api/editor/save') {
+          return send(res, 200, await editor.save(cfg, {
+            name: typeof body.name === 'string' ? body.name.trim() : '',
+            layout: body.layout, base: body.base || null, overwrite: !!body.overwrite,
+            copyAudioFrom: typeof body.copyAudioFrom === 'string' ? body.copyAudioFrom : null,
+          }, validProfileName));
+        }
+      } catch (e) { return fail(e); }
+    }
   }
 
   // Save the displays that are on right now as a profile.

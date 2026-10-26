@@ -1,4 +1,4 @@
-// `DisplayDeckCtl selftest`: exercises the pure logic (profile XML, adapter remapping) with no hardware access.
+﻿// `DisplayDeckCtl selftest`: exercises the pure logic (profile XML, adapter remapping) with no hardware access.
 using System;
 using System.Collections.Generic;
 
@@ -114,11 +114,76 @@ namespace DisplayDeck.Ctl
             Check(AudioOps.ResolveFormat(d, f.Guid) == f.Guid, "GUID resolves");
             Check(Throws(delegate { AudioOps.ResolveFormat(d, "nonsense format"); }), "unknown format is rejected");
 
+            // ---- layout builder: an edited layout becomes a profile ----
+            List<Profile> templates = new List<Profile>(); templates.Add(p);
+            List<LiveTarget> noLive = new List<LiveTarget>();
+            List<SpecDisplay> spec = new List<SpecDisplay>();
+            SpecDisplay s0 = new SpecDisplay(); s0.TargetId = 4353; s0.Name = "MPG"; s0.Width = 5120; s0.Height = 1440; s0.X = 0; s0.Y = 0; s0.Primary = true;
+            SpecDisplay s1 = new SpecDisplay(); s1.TargetId = 4355; s1.Name = "TV"; s1.Width = 3840; s1.Height = 2160; s1.X = -3840; s1.Y = 100; s1.Refresh = 120; s1.Primary = false;
+            spec.Add(s0); spec.Add(s1);
+            Profile b1 = LayoutBuilder.Build(spec, templates, noLive);
+            Check(b1.Paths.Count == 2 && b1.Monitors.Count == 2, "builds a path and a monitor per enabled display");
+            Check(b1.Modes[(int)b1.Paths[0].sourceInfo.modeInfoIdx].sourceMode.positionX == 0 && b1.Modes[(int)b1.Paths[1].sourceInfo.modeInfoIdx].sourceMode.positionX == -3840, "keeps positions, including negative ones");
+            Check(b1.Paths[0].targetInfo.modeInfoIdx != DisplayNative.IDX_INVALID && b1.Paths[1].targetInfo.modeInfoIdx == DisplayNative.IDX_INVALID, "keeps timing only for an unchanged display");
+            Check(b1.Paths[1].targetInfo.refreshRate.Numerator == 120000 && b1.Paths[1].targetInfo.refreshRate.Denominator == 1000, "sets the new refresh rate");
+            Check(b1.Paths[0].sourceInfo.id == 0 && b1.Paths[1].sourceInfo.id == 1, "gives each display its own source");
+
+            // moving the primary: everything shifts so the primary sits at (0,0)
+            s0.Primary = false; s1.Primary = true;
+            Profile b2 = LayoutBuilder.Build(spec, templates, noLive);
+            ModeInfo tvSrc = b2.Modes[(int)b2.Paths[1].sourceInfo.modeInfoIdx], mpgSrc = b2.Modes[(int)b2.Paths[0].sourceInfo.modeInfoIdx];
+            Check(tvSrc.sourceMode.positionX == 0 && tvSrc.sourceMode.positionY == 0 && mpgSrc.sourceMode.positionX == 3840 && mpgSrc.sourceMode.positionY == -100, "shifts the layout so the primary is at the origin");
+
+            // a display that is switched off is left out; a layout with none on is refused
+            s1.Enabled = false; s0.Primary = true;
+            Check(LayoutBuilder.Build(spec, templates, noLive).Paths.Count == 1, "leaves out displays that are off");
+            s0.Enabled = false;
+            Check(Throws(delegate { LayoutBuilder.Build(spec, templates, noLive); }), "refuses a layout with every display off");
+            s0.Enabled = true; s1.Enabled = true;
+
+            // a display nobody knows about cannot be added; a live one can (no saved timing)
+            SpecDisplay s2 = new SpecDisplay(); s2.TargetId = 9999; s2.Name = "New"; s2.Width = 1920; s2.Height = 1080; s2.X = 5120; s2.Refresh = 60;
+            spec.Add(s2);
+            Check(Throws(delegate { LayoutBuilder.Build(spec, templates, noLive); }), "refuses a display that is neither connected nor saved");
+            List<LiveTarget> live = new List<LiveTarget>();
+            LiveTarget lt = new LiveTarget(); lt.Path = p.Paths[1]; lt.Path.targetInfo.id = 9999; lt.Monitor = new MonitorInfo(); lt.Monitor.FriendlyName = "New"; live.Add(lt);
+            s0.Primary = true; s1.Primary = false;
+            Profile b3 = LayoutBuilder.Build(spec, templates, live);
+            Check(b3.Paths.Count == 3 && b3.Paths[2].targetInfo.id == 9999 && b3.Paths[2].targetInfo.modeInfoIdx == DisplayNative.IDX_INVALID, "adds a connected display from the live list");
+            Check(b3.Monitors[2].TargetId() == 9999, "synthesizes a device path for it");
+
+            // validation
+            s2.Width = 10;
+            Check(Throws(delegate { LayoutBuilder.Build(spec, templates, live); }), "refuses an impossible resolution");
+            s2.Width = 1920; s2.TargetId = 4353;
+            Check(Throws(delegate { LayoutBuilder.Build(spec, templates, live); }), "refuses the same display twice");
+
+            // the built profile survives writing and reading, and can be applied by the normal path
+            Profile rt = ProfileFile.Parse(ProfileFile.Write(b1));
+            Check(rt.Paths.Count == 2 && rt.Paths[1].targetInfo.modeInfoIdx == DisplayNative.IDX_INVALID, "an edited profile round-trips through XML");
+            PathInfo[] cur2 = new PathInfo[2]; cur2[0] = rt.Paths[0]; cur2[1] = rt.Paths[1];
+            cur2[0].targetInfo.adapterId.LowPart = 3333; cur2[1].targetInfo.adapterId.LowPart = 3333;
+            List<string> sk2 = new List<string>();
+            List<MatchedDisplay> m2 = DisplayOps.Match(rt, cur2, sk2);
+            PathInfo[] bp; ModeInfo[] bm;
+            DisplayOps.Build(rt, m2, out bp, out bm);
+            Check(bp.Length == 2 && bm.Length == 3 && bp[1].targetInfo.modeInfoIdx == DisplayNative.IDX_INVALID, "apply copes with a display that has no saved timing");
+
+            // the layout JSON the editor sends
+            JavaScriptSerializerShim shim = new JavaScriptSerializerShim();
+            List<SpecDisplay> parsed = LayoutBuilder.ParseSpec(shim.Parse("{\"displays\":[{\"targetId\":4353,\"name\":\"A\",\"enabled\":true,\"primary\":true,\"width\":2560,\"height\":1440,\"x\":0,\"y\":0,\"refresh\":143.97,\"rotation\":1}]}"));
+            Check(parsed.Count == 1 && parsed[0].TargetId == 4353 && parsed[0].Width == 2560 && Math.Abs(parsed[0].Refresh - 143.97) < 0.001 && parsed[0].Primary, "reads the layout json");
+
             Dictionary<string, object> r = new Dictionary<string, object>();
             r["passed"] = passed;
             r["failed"] = new List<object>(failed.ToArray());
             r["ok"] = failed.Count == 0;
             return r;
+        }
+
+        class JavaScriptSerializerShim
+        {
+            public object Parse(string json) { return new System.Web.Script.Serialization.JavaScriptSerializer().DeserializeObject(json); }
         }
 
         static bool Throws(Action a)

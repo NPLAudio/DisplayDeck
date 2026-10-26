@@ -43,6 +43,10 @@ Each saved layout is now a card. Tap one to apply it. If something is not what y
 If you already have layout files (`.xml`) in another folder, open **Settings...** and point
 **Profiles folder** at it.
 
+### Build a layout without arranging Windows first (optional)
+
+Press **New layout** on the Profiles page, or **Edit layout** on a card. Drag the screens, set their sizes and refresh rates, press **Try layout** to see it (it goes back by itself after 15 seconds unless you press **Keep**), then name it and press **Save profile**.
+
 ## 3. Set up audio (optional)
 
 On any card press **Edit audio**, choose the playback device, choose the spatial format (the list shows what

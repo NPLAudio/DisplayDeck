@@ -2,6 +2,9 @@
 //   display save <file.xml>
 //   display apply <file.xml> [--validate]
 //   display undo
+//   display connected                       connected displays with the modes each supports
+//   display build <layout.json> <out.xml> [template.xml ...]
+//   display remember <file.xml>             make this layout the one "undo" returns to
 //   audio list
 //   audio default <id>
 //   audio spatial <id> <guid|name|off>
@@ -65,6 +68,17 @@ namespace DisplayDeck.Ctl
             else Console.Out.Write(json);
         }
 
+        static Dictionary<string, object> ModeJson(ModeOption mo)
+        {
+            Dictionary<string, object> o = new Dictionary<string, object>();
+            o["width"] = mo.Width;
+            o["height"] = mo.Height;
+            List<object> rates = new List<object>();
+            foreach (int hz in mo.Rates.Keys) rates.Add(hz);
+            o["refresh"] = rates;
+            return o;
+        }
+
         static string Arg(List<string> a, int i, string what)
         {
             if (a.Count <= i) throw new CtlException("Missing argument: " + what);
@@ -121,8 +135,57 @@ namespace DisplayDeck.Ctl
                 r["displays"] = p.Paths.Count;
                 return r;
             }
+            if (group == "display" && cmd == "connected")
+            {
+                List<object> list = new List<object>();
+                foreach (LiveInfo li in LiveDisplays.Query(true))
+                {
+                    Dictionary<string, object> o = new Dictionary<string, object>();
+                    MonitorInfo m = li.Target.Monitor;
+                    o["targetId"] = li.Target.Path.targetInfo.id;
+                    o["name"] = m.FriendlyName;
+                    o["hwId"] = ProfileFile.EdidHwId(m.ManufactureId, m.ProductCodeId);
+                    o["manufacturer"] = m.ManufactureId;
+                    o["product"] = m.ProductCodeId;
+                    o["active"] = li.Active;
+                    List<object> modes = new List<object>();
+                    foreach (ModeOption mo in li.Modes) modes.Add(ModeJson(mo));
+                    o["modes"] = modes;
+                    if (li.Preferred != null) o["preferred"] = ModeJson(li.Preferred);
+                    list.Add(o);
+                }
+                r["displays"] = list;
+                return r;
+            }
+            if (group == "display" && cmd == "build")
+            {
+                // display build <layout.json> <out.xml> [template.xml ...]
+                JavaScriptSerializer js = new JavaScriptSerializer();
+                js.MaxJsonLength = int.MaxValue;
+                List<SpecDisplay> spec = LayoutBuilder.ParseSpec(js.DeserializeObject(File.ReadAllText(Arg(args, 2, "layout file"))));
+                string outFile = Arg(args, 3, "output file");
+                List<Profile> templates = new List<Profile>();
+                for (int i = 4; i < args.Count; i++)
+                {
+                    try { templates.Add(ProfileFile.Parse(File.ReadAllText(args[i]))); } catch (CtlException) { /* an unreadable profile is just not a template */ }
+                }
+                List<LiveTarget> live = new List<LiveTarget>();
+                foreach (LiveInfo li in LiveDisplays.Query(false)) live.Add(li.Target);
+                Profile built = LayoutBuilder.Build(spec, templates, live);
+                File.WriteAllText(outFile, ProfileFile.Write(built), new UTF8Encoding(false));
+                r["ok"] = true;
+                r["displays"] = built.Paths.Count;
+                return r;
+            }
             if (group == "display" && cmd == "apply")
                 return ApplyFile(File.ReadAllText(Arg(args, 2, "profile file")), validate);
+            if (group == "display" && cmd == "remember")
+            {
+                // Make a saved layout the one "undo" goes back to.
+                File.Copy(Arg(args, 2, "layout file"), PreviousFile(), true);
+                r["ok"] = true;
+                return r;
+            }
             if (group == "display" && cmd == "undo")
             {
                 if (!File.Exists(PreviousFile())) throw new CtlException("There is no earlier layout to go back to.");

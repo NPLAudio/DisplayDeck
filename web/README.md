@@ -115,3 +115,19 @@ Every state-changing request refuses cross-origin calls, and `apply` only accept
 - **Current:** the live layout is saved to a temporary file by the helper and compared with every profile
   (display identity, resolution, position, rounded refresh rate). A match is "Current"; if nothing matches
   reliably the page shows "Last applied" and says so.
+
+## Layout editor API
+
+These endpoints only answer requests from the PC running DisplayDeck.
+
+| Method and path | What it does |
+| --- | --- |
+| `GET /api/editor/state?from=<profile>` | The displays the editor works with: the profile's layout (or `?live=1` for the screens as they are, or nothing for a blank layout), plus every other known display switched off, each with the resolutions and refresh rates on offer. |
+| `POST /api/editor/validate` | Body `{ layout, base }`. Builds the layout and asks Windows to check it without changing anything. |
+| `POST /api/editor/test` | Body `{ layout, base, seconds }`. Applies the layout and goes back by itself after `seconds` (5 to 60) unless kept. |
+| `POST /api/editor/keep` | Keeps the tried layout. "Undo layout change" then returns to what was there before the test. |
+| `POST /api/editor/revert` | Goes back to the layout from before the test now. |
+| `POST /api/editor/save` | Body `{ name, layout, base, overwrite, copyAudioFrom }`. Writes the layout as a profile. |
+
+A `layout` is `{ displays: [{ targetId, name, enabled, primary, width, height, x, y, refresh, rotation }] }`, where
+`rotation` is 1 to 4 (0, 90, 180 and 270 degrees) and `width`/`height` are the size on the desktop after rotation.

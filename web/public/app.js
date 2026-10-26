@@ -29,6 +29,7 @@ const ICONS = {
   moon: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
   alert: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4M12 17h.01"/>',
   check: '<path d="M20 6 9 17l-5-5"/>',
+  layout: '<rect width="9" height="7" x="3" y="4" rx="1"/><rect width="9" height="7" x="12" y="13" rx="1"/>',
 };
 
 function icon(name, cls = '') {

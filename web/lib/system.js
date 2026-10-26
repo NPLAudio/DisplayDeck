@@ -54,6 +54,36 @@ async function applyProfile(cfg, file) {
   return ctl(cfg, ['display', 'apply', file], 45000);
 }
 
+// ---- layout editor ----
+
+// Connected displays with the modes each supports (displays that are off report none).
+async function connectedDisplays(cfg) {
+  const { displays } = await ctl(cfg, ['display', 'connected'], 45000);
+  return displays || [];
+}
+
+// Builds a profile file from an edited layout. templateFiles are saved profiles the helper may copy
+// connection details from.
+async function buildLayout(cfg, layout, outFile, templateFiles) {
+  const spec = tmpFile('.json');
+  fs.writeFileSync(spec, JSON.stringify(layout));
+  try {
+    return await ctl(cfg, ['display', 'build', spec, outFile, ...templateFiles], 45000);
+  } finally {
+    fs.rm(spec, { force: true }, () => {});
+  }
+}
+
+// Asks Windows whether it would accept a profile, without changing the screen.
+async function validateProfile(cfg, file) {
+  return ctl(cfg, ['display', 'apply', file, '--validate'], 45000);
+}
+
+// Makes a saved layout the one "Undo layout change" returns to.
+async function rememberLayout(cfg, file) {
+  return ctl(cfg, ['display', 'remember', file]);
+}
+
 async function undoLayout(cfg) {
   return ctl(cfg, ['display', 'undo'], 45000);
 }
@@ -122,4 +152,4 @@ function edidName(hwId) {
   });
 }
 
-module.exports = { saveLiveXml, saveLayoutTo, applyProfile, undoLayout, listPlaybackDevices, applyAudio, pickPath, edidName };
+module.exports = { saveLiveXml, saveLayoutTo, applyProfile, undoLayout, connectedDisplays, buildLayout, validateProfile, rememberLayout, tmpFile, listPlaybackDevices, applyAudio, pickPath, edidName };

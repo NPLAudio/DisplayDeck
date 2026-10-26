@@ -10,6 +10,7 @@
 <body>
 <main>
   <div class="row" style="flex-wrap:wrap; margin-bottom:4px">
+    <a class="btn outline sm" href="/editor" id="newLayoutLink" title="Build a layout by arranging your displays" hidden>New layout</a>
     <button class="btn outline sm" type="button" id="saveLayoutBtn" title="Save the current display layout as a profile">Save layout</button>
     <button class="btn ghost sm" type="button" id="undoBtn" title="Go back to the layout before the last change">Undo</button>
     <span class="grow"></span>
@@ -148,7 +149,9 @@ function profileCard(p) {
     el('span', { class: 'row muted grow', style: 'min-width:0' }, icon('volume'), el('span', {}, audioText)),
     el('button', { class: 'btn outline sm', type: 'button', onclick: () => openAudio(p) }, 'Edit audio')));
   if (state.canEdit) {
-    body.append(el('div', {}, el('button', { class: 'btn ghost destructive sm', type: 'button', onclick: () => deleteProfile(p.name) }, icon('trash'), 'Delete profile')));
+    body.append(el('div', { class: 'row', style: 'flex-wrap:wrap' },
+      el('a', { class: 'btn outline sm', href: '/editor?from=' + encodeURIComponent(p.name) }, icon('layout'), 'Edit layout'),
+      el('button', { class: 'btn ghost destructive sm', type: 'button', onclick: () => deleteProfile(p.name) }, icon('trash'), 'Delete profile')));
   }
 
   toggle.addEventListener('click', () => {
@@ -322,9 +325,11 @@ $('undoBtn').addEventListener('click', async () => {
 
 // ---------- start ----------
 $('saveLayoutBtn').prepend(icon('plus'));
+$('newLayoutLink').prepend(icon('layout'));
 $('undoBtn').prepend(icon('undo'));
 renderShell('profiles').then((s) => {
   state.canEdit = !!(s && s.canEdit);
+  $('newLayoutLink').hidden = !state.canEdit;
   if (state.profiles.length) renderProfiles(); // adds the Delete buttons once we know this is the PC itself
 });
 loadProfiles(); loadDevices();

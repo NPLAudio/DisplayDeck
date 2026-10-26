@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Layout editor - DisplayDeck</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<main class="stack">
+  <section class="card">
+    <div class="card-header">
+      <h2 class="card-title">Arrange your displays</h2>
+      <p class="card-description">Drag a screen to move it, tap one to change its size, refresh rate or rotation, then try the layout before you save it.</p>
+    </div>
+    <div class="card-content">
+      <div class="field">
+        <label class="label" for="startSel">Start from</label>
+        <select class="input" id="startSel"></select>
+      </div>
+      <div id="notice" class="alert warn" style="margin-top:12px" hidden></div>
+      <div class="canvas-wrap" id="canvasWrap" style="margin-top:16px"></div>
+      <p id="problems" class="status" role="status"></p>
+    </div>
+  </section>
+
+  <section class="card" id="detailCard" hidden>
+    <div class="card-header">
+      <h2 class="card-title" id="detailName">Display</h2>
+      <p class="card-description" id="detailInfo"></p>
+    </div>
+    <div class="card-content">
+      <div class="grid2">
+        <div class="field"><label class="label" for="resSel">Resolution</label><select class="input" id="resSel"></select></div>
+        <div class="field"><label class="label" for="hzSel">Refresh rate</label><select class="input" id="hzSel"></select></div>
+        <div class="field"><label class="label" for="rotSel">Rotation</label>
+          <select class="input" id="rotSel">
+            <option value="1">Landscape</option>
+            <option value="2">Portrait (90°)</option>
+            <option value="3">Landscape, flipped (180°)</option>
+            <option value="4">Portrait, flipped (270°)</option>
+          </select>
+        </div>
+        <div class="field"><label class="label">Position</label>
+          <div class="field-row">
+            <input class="input" id="posX" type="number" step="1" aria-label="Left position" inputmode="numeric">
+            <input class="input" id="posY" type="number" step="1" aria-label="Top position" inputmode="numeric">
+          </div>
+        </div>
+      </div>
+      <p id="modeNote" class="muted small" style="margin:10px 0 0" hidden></p>
+      <div class="row" style="flex-wrap:wrap; margin-top:16px">
+        <button class="btn outline sm" type="button" id="primaryBtn">Make primary</button>
+        <button class="btn ghost destructive sm" type="button" id="offBtn">Turn off</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" id="offCard" hidden>
+    <div class="card-header">
+      <h2 class="card-title">Displays that are off</h2>
+      <p class="card-description">Add one to place it in the layout.</p>
+    </div>
+    <div class="card-content" id="offList"></div>
+  </section>
+
+  <section class="card">
+    <div class="card-header">
+      <h2 class="card-title">Try it and save</h2>
+      <p class="card-description">Try layout applies it for real and goes back by itself unless you keep it.</p>
+    </div>
+    <div class="card-content">
+      <div id="countdown" class="alert warn" role="alert" style="margin-bottom:16px; align-items:center" hidden>
+        <div class="grow"><strong>Keep this layout?</strong> <span id="countdownText"></span></div>
+        <button class="btn sm" type="button" id="keepBtn">Keep</button>
+        <button class="btn outline sm" type="button" id="revertBtn">Go back now</button>
+      </div>
+      <div class="field">
+        <label class="label" for="nameIn">Profile name</label>
+        <input class="input" id="nameIn" autocomplete="off" spellcheck="false" maxlength="60" placeholder="For example: Desk">
+      </div>
+      <p id="msg" class="status" role="status"></p>
+      <div class="row" style="flex-wrap:wrap">
+        <button class="btn outline sm" type="button" id="checkBtn" title="Ask Windows whether it would accept this layout, without changing anything">Check</button>
+        <button class="btn outline sm" type="button" id="tryBtn" title="Apply this layout now, then go back automatically unless you keep it">Try layout</button>
+        <button class="btn sm" type="button" id="saveBtn">Save profile</button>
+        <button class="btn ghost sm" type="button" id="replaceBtn" hidden>Replace existing</button>
+        <span class="grow"></span>
+        <a class="btn ghost sm" href="/">Back to profiles</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<style>
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid2 .field + .field { margin-top: 0; }
+  @media (max-width: 520px) { .grid2 { grid-template-columns: 1fr; } }
+  .container.wide { max-width: 860px; }
+  .canvas-wrap { border: 1px dashed hsl(var(--border)); border-radius: var(--radius); background: hsl(var(--muted) / .4); touch-action: none; user-select: none; -webkit-user-select: none; }
+  svg.editor { display: block; width: 100%; height: auto; }
+  svg.editor g.tile { cursor: grab; outline: none; }
+  svg.editor g.tile.dragging { cursor: grabbing; }
+  svg.editor .mon { fill: hsl(var(--secondary)); stroke: hsl(var(--border)); stroke-width: 2; }
+  svg.editor g.tile.sel .mon { stroke: hsl(var(--primary)); stroke-width: 3; }
+  svg.editor g.tile.pri .mon { fill: hsl(var(--background)); }
+  svg.editor g.tile.bad .mon { stroke: hsl(var(--destructive)); stroke-width: 3; fill: hsl(var(--destructive) / .12); }
+  svg.editor g.tile:focus-visible .mon { stroke: hsl(var(--ring)); stroke-width: 4; }
+  svg.editor .guide { stroke: hsl(var(--primary)); stroke-width: 1.5; stroke-dasharray: 6 5; opacity: .6; }
+  .off-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; }
+  .off-row + .off-row { border-top: 1px solid hsl(var(--border)); }
+  .empty-hint { padding: 28px 16px; text-align: center; }
+</style>
+
+<script src="/app.js"></script>
+<script>
+'use strict';
+const qs = new URLSearchParams(location.search);
+const from = qs.get('from');
+const useLive = qs.get('live') === '1';
+
+const ed = { displays: [], selected: null, profiles: [], baseName: null, test: null, timer: null, busy: false, dirty: false };
+const ROT_LABEL = { 1: 'Landscape', 2: 'Portrait', 3: 'Landscape, flipped', 4: 'Portrait, flipped' };
+const fmtRes = (w, h) => `${w} × ${h}`;
+const fmtHz = (h) => (h ? `${Number.isInteger(h) ? h : (Math.round(h * 100) / 100)} Hz` : '');
+const on = () => ed.displays.filter((d) => d.enabled);
+const swapped = (d) => d.rotation === 2 || d.rotation === 4;
+const nativeRes = (d) => (swapped(d) ? { w: d.height, h: d.width } : { w: d.width, h: d.height });
+const sel = () => ed.displays.find((d) => d.key === ed.selected) || null;
+const mk = (tag, attrs = {}, text) => {
+  const n = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+  if (text != null) n.textContent = text;
+  return n;
+};
+
+// ---------- loading ----------
+async function load() {
+  try {
+    const r = await api('/api/editor/state' + (useLive ? '?live=1' : from ? '?from=' + encodeURIComponent(from) : ''));
+    ed.displays = r.displays; ed.profiles = r.profiles || []; ed.baseName = r.from;
+    if (r.connectedError) { $('notice').hidden = false; $('notice').textContent = 'Could not read the connected displays: ' + r.connectedError; }
+    ed.test = r.test && r.test.pending ? r.test : null;
+    for (const d of ed.displays) if (d.enabled && d.x == null) d.x = 0;
+    ed.selected = (on().find((d) => d.primary) || on()[0] || ed.displays[0] || {}).key || null;
+    if (!ed.displays.some((d) => d.enabled)) ed.selected = null;
+    fillStart();
+    if (from && !$('nameIn').value) $('nameIn').value = `${from} copy`;
+    paint();
+    if (ed.test) startCountdown(ed.test.secondsLeft);
+  } catch (e) {
+    $('notice').hidden = false;
+    $('notice').textContent = e.message;
+  }
+}
+
+function fillStart() {
+  const s = $('startSel');
+  s.replaceChildren(el('option', { value: '' }, 'A blank layout'), el('option', { value: '__live' }, 'The screens as they are now'),
+    ...ed.profiles.map((n) => el('option', { value: n }, n)));
+  s.value = useLive ? '__live' : from || '';
+}
+$('startSel').addEventListener('change', () => {
+  if (ed.dirty && !confirm('Start over? Your changes to this layout will be lost.')) { fillStart(); return; }
+  const v = $('startSel').value;
+  location.search = v === '__live' ? '?live=1' : v ? '?from=' + encodeURIComponent(v) : '';
+});
+
+// ---------- geometry ----------
+const rectOf = (d) => ({ x: d.x, y: d.y, w: d.width, h: d.height });
+const overlaps = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+const touches = (a, b) => {
+  const vert = (a.x + a.w === b.x || b.x + b.w === a.x) && a.y < b.y + b.h && b.y < a.y + a.h;
+  const horiz = (a.y + a.h === b.y || b.y + b.h === a.y) && a.x < b.x + b.w && b.x < a.x + a.w;
+  return vert || horiz;
+};
+
+function problems() {
+  const list = on(), out = { overlap: new Set(), lonely: new Set(), messages: [] };
+  for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
+    if (overlaps(rectOf(list[i]), rectOf(list[j]))) { out.overlap.add(list[i].key); out.overlap.add(list[j].key); }
+  }
+  if (out.overlap.size) out.messages.push({ level: 'err', text: 'Some displays overlap. Move them apart so their edges touch.' });
+  if (list.length > 1) {
+    // every display must be reachable from the first through touching edges
+    const seen = new Set([list[0].key]), queue = [list[0]];
+    while (queue.length) {
+      const c = queue.pop();
+      for (const o of list) if (!seen.has(o.key) && touches(rectOf(c), rectOf(o))) { seen.add(o.key); queue.push(o); }
+    }
+    for (const d of list) if (!seen.has(d.key)) out.lonely.add(d.key);
+    if (out.lonely.size && !out.overlap.size) out.messages.push({ level: 'warn', text: 'Some displays do not touch the others. Windows may move them or refuse the layout.' });
+  }
+  if (!list.length) out.messages.push({ level: 'info', text: 'Add at least one display to the layout.' });
+  return out;
+}
+
+// ---------- canvas ----------
+let frozen = null; // world frame held steady while dragging
+function frame() {
+  if (frozen) return frozen;
+  const list = on();
+  if (!list.length) return { x0: 0, y0: 0, w: 4000, h: 1400 };
+  const x0 = Math.min(...list.map((d) => d.x)), y0 = Math.min(...list.map((d) => d.y));
+  const x1 = Math.max(...list.map((d) => d.x + d.width)), y1 = Math.max(...list.map((d) => d.y + d.height));
+  const padX = Math.max(600, (x1 - x0) * 0.3), padY = Math.max(400, (y1 - y0) * 0.35);
+  const w = x1 - x0 + padX * 2;
+  const h = Math.max(y1 - y0 + padY * 2, w * 0.27);
+  return { x0: x0 - padX, y0: y0 - (h - (y1 - y0)) / 2, w, h };
+}
+
+function paintCanvas() {
+  const wrap = $('canvasWrap');
+  const list = on();
+  if (!list.length) {
+    wrap.replaceChildren(el('div', { class: 'empty-hint muted' }, ed.displays.length ? 'Nothing is on yet. Add a display from the list below.' : 'No displays found yet. Connect a display or start from a saved profile.'));
+    return;
+  }
+  const f = frame();
+  const svg = mk('svg', { viewBox: `${f.x0} ${f.y0} ${f.w} ${f.h}`, class: 'editor', role: 'group', 'aria-label': 'Display layout. Drag a screen to move it.' });
+  const prob = problems();
+  const fs = Math.max(f.w / 38, 28);
+  for (const d of list) {
+    const g = mk('g', { class: 'tile' + (d.primary ? ' pri' : '') + (d.key === ed.selected ? ' sel' : '') + (prob.overlap.has(d.key) ? ' bad' : ''), tabindex: '0', role: 'button', 'aria-label': `${d.name}, ${fmtRes(d.width, d.height)}, drag or use arrow keys to move` });
+    g.dataset.key = d.key;
+    g.append(mk('rect', { x: d.x + 6, y: d.y + 6, width: Math.max(d.width - 12, 1), height: Math.max(d.height - 12, 1), rx: Math.min(d.width, d.height) * 0.025, class: 'mon' }));
+    const cx = d.x + d.width / 2, cy = d.y + d.height / 2;
+    const maxChars = Math.max(6, Math.floor((d.width * 0.86) / (fs * 0.6)));
+    const label = (d.primary ? '★ ' : '') + (d.name.length > maxChars ? d.name.slice(0, maxChars - 1) + '…' : d.name);
+    const t1 = mk('text', { x: cx, y: cy - fs * 0.1, 'text-anchor': 'middle' }, label);
+    t1.style.fontSize = fs + 'px';
+    const t2 = mk('text', { x: cx, y: cy + fs * 1.1, 'text-anchor': 'middle', class: 'sub' }, `${fmtRes(d.width, d.height)}${d.refresh ? ' @ ' + fmtHz(d.refresh) : ''}`);
+    t2.style.fontSize = fs * 0.78 + 'px';
+    g.append(t1, t2);
+    attachDrag(g, d, svg);
+    svg.append(g);
+  }
+  wrap.replaceChildren(svg);
+}
+
+function attachDrag(g, d, svg) {
+  g.addEventListener('pointerdown', (ev) => {
+    if (ev.button !== 0 && ev.pointerType === 'mouse') return;
+    ev.preventDefault();
+    g.setPointerCapture(ev.pointerId);
+    ed.selected = d.key;
+    const f = frame();
+    frozen = f;
+    const rect = svg.getBoundingClientRect();
+    const k = f.w / rect.width;                       // world units per screen pixel
+    const sx = ev.clientX, sy = ev.clientY, ox = d.x, oy = d.y;
+    let moved = false, guides = [];
+    g.classList.add('dragging');
+    const others = on().filter((o) => o !== d);
+    const snap = (v, cands) => {
+      let best = null;
+      for (const c of cands) if (Math.abs(c - v) <= 30 * k && (best === null || Math.abs(c - v) < Math.abs(best - v))) best = c;
+      return best === null ? v : best;
+    };
+    const move = (e) => {
+      const dx = (e.clientX - sx) * k, dy = (e.clientY - sy) * k;
+      if (!moved && Math.hypot(e.clientX - sx, e.clientY - sy) < 4) return;
+      moved = true; ed.dirty = true;
+      let nx = ox + dx, ny = oy + dy;
+      const xs = [], ys = [];
+      for (const o of others) {
+        xs.push(o.x + o.width, o.x - d.width, o.x, o.x + o.width - d.width);
+        ys.push(o.y + o.height, o.y - d.height, o.y, o.y + o.height - d.height);
+      }
+      nx = Math.round(snap(nx, xs)); ny = Math.round(snap(ny, ys));
+      d.x = nx; d.y = ny;
+      g.querySelector('rect').setAttribute('x', nx + 6); g.querySelector('rect').setAttribute('y', ny + 6);
+      const ts = g.querySelectorAll('text');
+      ts[0].setAttribute('x', nx + d.width / 2); ts[0].setAttribute('y', ny + d.height / 2 - parseFloat(ts[0].style.fontSize) * 0.1);
+      ts[1].setAttribute('x', nx + d.width / 2); ts[1].setAttribute('y', ny + d.height / 2 + parseFloat(ts[0].style.fontSize) * 1.1);
+    };
+    const up = () => {
+      g.removeEventListener('pointermove', move);
+      g.removeEventListener('pointerup', up);
+      g.removeEventListener('pointercancel', up);
+      frozen = null;
+      paint();
+    };
+    g.addEventListener('pointermove', move);
+    g.addEventListener('pointerup', up);
+    g.addEventListener('pointercancel', up);
+    paintDetail();
+  });
+  g.addEventListener('keydown', (ev) => {
+    const step = ev.shiftKey ? 100 : 10;
+    const delta = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[ev.key];
+    if (delta) { ev.preventDefault(); d.x += delta[0]; d.y += delta[1]; ed.dirty = true; ed.selected = d.key; paint(); const again = document.querySelector(`g.tile[data-key="${CSS.escape(d.key)}"]`); if (again) again.focus(); }
+    else if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); ed.selected = d.key; paint(); }
+  });
+}
+
+// ---------- detail panel ----------
+function paintDetail() {
+  const d = sel();
+  const show = d && d.enabled;
+  $('detailCard').hidden = !show;
+  if (!show) return;
+  $('detailName').textContent = d.name;
+  $('detailInfo').textContent = `${d.primary ? 'Primary display. ' : ''}${fmtRes(d.width, d.height)}${d.refresh ? ' at ' + fmtHz(d.refresh) : ''}, ${ROT_LABEL[d.rotation].toLowerCase()}`;
+  const nat = nativeRes(d);
+  const resSel = $('resSel');
+  resSel.replaceChildren(...d.modes.map((m, i) => el('option', { value: String(i) }, fmtRes(m.width, m.height))));
+  let mi = d.modes.findIndex((m) => m.width === nat.w && m.height === nat.h);
+  if (mi < 0) { d.modes.push({ width: nat.w, height: nat.h, refresh: d.refresh ? [Math.round(d.refresh)] : [] }); resSel.append(el('option', { value: String(d.modes.length - 1) }, fmtRes(nat.w, nat.h))); mi = d.modes.length - 1; }
+  resSel.value = String(mi);
+  paintHz(d, d.modes[mi]);
+  $('rotSel').value = String(d.rotation);
+  $('posX').value = d.x; $('posY').value = d.y;
+  $('primaryBtn').hidden = d.primary || on().length < 2;
+  $('offBtn').hidden = on().length < 2;
+  const note = $('modeNote');
+  note.hidden = d.deviceModes === true;
+  note.textContent = d.connected
+    ? 'This display is off right now, so Windows cannot list its exact modes. These sizes come from your saved profiles and common choices; Check or Try layout will confirm one works.'
+    : 'This display is not connected. These sizes come from your saved profiles and common choices; it will be skipped when you apply the profile without it plugged in.';
+}
+
+function paintHz(d, mode) {
+  const s = $('hzSel');
+  const rates = mode.refresh.length ? mode.refresh : [Math.round(d.refresh) || 60];
+  s.replaceChildren(...rates.map((r) => el('option', { value: String(r) }, `${r} Hz`)));
+  const cur = Math.round(d.refresh);
+  s.value = String(rates.includes(cur) ? cur : rates[rates.length - 1]);
+  if (!rates.includes(cur)) d.refresh = rates[rates.length - 1];
+}
+
+$('resSel').addEventListener('change', () => {
+  const d = sel(); if (!d) return;
+  const m = d.modes[Number($('resSel').value)];
+  d.width = swapped(d) ? m.height : m.width; d.height = swapped(d) ? m.width : m.height;
+  d.refresh = m.refresh.includes(Math.round(d.refresh)) ? d.refresh : (m.refresh[m.refresh.length - 1] || d.refresh);
+  ed.dirty = true; paint();
+});
+$('hzSel').addEventListener('change', () => { const d = sel(); if (!d) return; d.refresh = Number($('hzSel').value); ed.dirty = true; paint(); });
+$('rotSel').addEventListener('change', () => {
+  const d = sel(); if (!d) return;
+  const was = swapped(d);
+  d.rotation = Number($('rotSel').value);
+  if (swapped(d) !== was) { const w = d.width; d.width = d.height; d.height = w; }
+  ed.dirty = true; paint();
+});
+for (const id of ['posX', 'posY']) $(id).addEventListener('change', () => {
+  const d = sel(); if (!d) return;
+  const v = Math.round(Number($(id).value));
+  if (Number.isFinite(v)) { if (id === 'posX') d.x = v; else d.y = v; ed.dirty = true; }
+  paint();
+});
+$('primaryBtn').addEventListener('click', () => { for (const o of ed.displays) o.primary = false; sel().primary = true; ed.dirty = true; paint(); });
+$('offBtn').addEventListener('click', () => turnOff(sel()));
+
+function turnOff(d) {
+  if (!d || on().length < 2) return;
+  d.enabled = false; d.primary = false; ed.dirty = true;
+  if (!on().some((o) => o.primary)) on()[0].primary = true;
+  ed.selected = on()[0].key;
+  paint();
+}
+
+function turnOn(d) {
+  const list = on();
+  d.enabled = true;
+  const right = list.length ? Math.max(...list.map((o) => o.x + o.width)) : 0;
+  d.x = right; d.y = list.length ? Math.min(...list.map((o) => o.y)) : 0;
+  d.primary = list.length === 0;
+  ed.selected = d.key; ed.dirty = true;
+  paint();
+}
+
+// ---------- the "off" list ----------
+function paintOff() {
+  const list = ed.displays.filter((d) => !d.enabled);
+  $('offCard').hidden = list.length === 0;
+  $('offList').replaceChildren(...list.map((d) => el('div', { class: 'off-row' },
+    el('div', { class: 'grow' },
+      el('div', { style: 'font-weight:600' }, d.name),
+      el('div', { class: 'muted small' }, `${fmtRes(d.width, d.height)}${d.refresh ? ' @ ' + fmtHz(d.refresh) : ''} · ${d.connected ? 'connected' : 'not connected'}`)),
+    el('button', { class: 'btn outline sm', type: 'button', onclick: () => turnOn(d) }, 'Add to layout'))));
+}
+
+function paint() {
+  paintCanvas(); paintDetail(); paintOff();
+  const p = problems();
+  const box = $('problems');
+  box.className = 'status' + (p.messages.some((m) => m.level === 'err') ? ' err' : '');
+  box.textContent = p.messages.map((m) => m.text).join(' ');
+  $('tryBtn').disabled = $('saveBtn').disabled = $('checkBtn').disabled = ed.busy || !on().length || p.overlap.size > 0;
+}
+
+// ---------- check, try, save ----------
+function layoutBody() {
+  return {
+    displays: ed.displays.map((d) => ({
+      targetId: d.targetId, name: d.name, manufacturer: d.manufacturer || 0, product: d.product || 0,
+      enabled: d.enabled, primary: d.enabled && d.primary, width: d.width, height: d.height,
+      x: d.x == null ? 0 : d.x, y: d.y == null ? 0 : d.y, refresh: d.refresh || 0, rotation: d.rotation || 1,
+    })),
+  };
+}
+const say = (text, kind = '') => { $('msg').className = 'status ' + kind; $('msg').textContent = text; };
+
+async function busy(fn) {
+  ed.busy = true; paint();
+  try { return await fn(); } finally { ed.busy = false; paint(); }
+}
+
+$('checkBtn').addEventListener('click', () => busy(async () => {
+  say('Asking Windows…');
+  try { await postJson('/api/editor/validate', { layout: layoutBody(), base: ed.baseName }); say('Windows accepts this layout.', 'ok'); }
+  catch (e) { say(e.message, 'err'); }
+}));
+
+$('tryBtn').addEventListener('click', () => busy(async () => {
+  say('Applying…');
+  try {
+    const r = await postJson('/api/editor/test', { layout: layoutBody(), base: ed.baseName, seconds: 15 });
+    say('');
+    startCountdown(r.secondsLeft);
+  } catch (e) { say(e.message, 'err'); }
+}));
+
+function startCountdown(secs) {
+  clearInterval(ed.timer);
+  let left = secs;
+  const box = $('countdown');
+  box.hidden = false;
+  const tick = () => {
+    $('countdownText').textContent = left > 0 ? `Going back in ${left} second${left === 1 ? '' : 's'}.` : 'Going back…';
+    if (left <= 0) { clearInterval(ed.timer); setTimeout(finishRevert, 2500); }
+    left -= 1;
+  };
+  tick();
+  ed.timer = setInterval(tick, 1000);
+}
+async function finishRevert() {
+  $('countdown').hidden = true;
+  say('Went back to your previous layout.', '');
+}
+$('keepBtn').addEventListener('click', async () => {
+  clearInterval(ed.timer); $('countdown').hidden = true;
+  try { await postJson('/api/editor/keep'); say('Kept. Use Undo on the profiles page to go back.', 'ok'); } catch (e) { say(e.message, 'err'); }
+});
+$('revertBtn').addEventListener('click', async () => {
+  clearInterval(ed.timer); $('countdown').hidden = true;
+  try { await postJson('/api/editor/revert'); say('Went back to your previous layout.', ''); } catch (e) { say(e.message, 'err'); }
+});
+
+async function save(overwrite) {
+  const name = $('nameIn').value.trim();
+  $('replaceBtn').hidden = true;
+  await busy(async () => {
+    try {
+      const r = await postJson('/api/editor/save', { name, layout: layoutBody(), base: ed.baseName, overwrite, copyAudioFrom: ed.baseName });
+      ed.dirty = false;
+      say(`Saved “${r.name}”. Opening your profiles…`, 'ok');
+      setTimeout(() => { location.href = '/'; }, 900);
+    } catch (e) {
+      say(e.message, 'err');
+      $('replaceBtn').hidden = !/already exists/i.test(e.message);
+    }
+  });
+}
+$('saveBtn').addEventListener('click', () => save(false));
+$('replaceBtn').addEventListener('click', () => save(true));
+$('nameIn').addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); save(false); } });
+window.addEventListener('beforeunload', (ev) => { if (ed.dirty) { ev.preventDefault(); ev.returnValue = ''; } });
+
+renderShell('profiles').then((s) => {
+  document.getElementById('shell').classList.add('wide');
+  if (s && !s.canEdit) { $('notice').hidden = false; $('notice').textContent = 'The layout editor only works on the PC running DisplayDeck.'; }
+});
+load();
+</script>
+</body>
+</html>

@@ -153,4 +153,4 @@ async function currentStatus(cfg) {
   };
 }
 
-module.exports = { buildProfiles, scanFiles, writeLastApplied, currentStatus };
+module.exports = { buildProfiles, scanFiles, writeLastApplied, currentStatus, displayName, readJson };
