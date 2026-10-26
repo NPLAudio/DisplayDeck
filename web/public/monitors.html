@@ -31,7 +31,7 @@
         <li>Only displays that are on in Windows are listed. Most monitors support this; some have a <strong>DDC/CI</strong> switch in their on-screen menu that must be on.</li>
         <li>TVs usually do not listen for these commands. They are controlled with HDMI-CEC instead, which a PC cannot send without extra hardware.</li>
         <li>If you switch a display to an input this PC is not on, this PC can no longer reach it. Switch it back with the display's own buttons or from the other device.</li>
-        <li>Some monitors only implement DDC/CI on certain ports. For example, several Samsung ultrawides answer on HDMI but not on DisplayPort: they accept the commands and report new values, yet nothing changes on screen. If a display ignores every control, try it on another port.</li>
+        <li>Some monitors only implement DDC/CI on certain ports. For example, several Samsung ultrawides answer on HDMI but not on DisplayPort: they accept the commands and report new values, yet nothing changes on screen, so DisplayDeck hides their controls. Use such a display on HDMI.</li>
         <li>Some monitors number their inputs differently from the standard, so a button may select a different port than its label. The monitor's own list of inputs is used when it provides one.</li>
       </ul>
     </div>
@@ -81,7 +81,7 @@ async function load() {
     state.monitors = r.monitors;
     setStatus('');
     render();
-    for (const m of state.monitors) if (m.ddc) loadCaps(m.id);
+    for (const m of state.monitors) if (m.ddc && !knownIssue(m)) loadCaps(m.id);
   } catch (e) {
     setStatus(e.message, 'err');
   } finally {
@@ -216,10 +216,10 @@ function advanced(m) {
     out);
 }
 
-// Known cases where a display accepts DDC/CI commands but does nothing with them.
+// Known cases where a display accepts DDC/CI commands but does nothing with them. Its controls are hidden.
 function knownIssue(m) {
   if (/^SAM/i.test(m.hwId || '') && m.connector === 'displayport') {
-    return 'Many Samsung ultrawides do not implement DDC/CI on DisplayPort: they accept these commands and report new values, but the screen does not change. If the controls below do nothing, try this display on an HDMI port.';
+    return 'Samsung ultrawides do not implement DDC/CI on DisplayPort: they accept the commands and report new values, but the screen does not change. The controls are hidden. Connect this display over HDMI to use them.';
   }
   return null;
 }
@@ -227,8 +227,9 @@ function knownIssue(m) {
 function card(m) {
   const body = [];
   const issue = m.ddc ? knownIssue(m) : null;
-  if (issue) body.push(el('div', { class: 'alert warn', style: 'margin-top:12px' }, icon('alert'), el('div', {}, el('strong', {}, 'This display may ignore these controls. '), issue)));
-  if (!m.ddc) {
+  if (issue) {
+    body.push(el('div', { class: 'alert warn', style: 'margin-top:12px' }, icon('alert'), el('div', {}, issue)));
+  } else if (!m.ddc) {
     body.push(el('div', { class: 'alert warn', style: 'margin-top:12px' }, icon('alert'),
       el('div', {}, m.backend === 'none'
         ? 'Windows and your graphics card do not let DisplayDeck reach this display. TVs usually cannot be controlled this way.'
@@ -238,9 +239,10 @@ function card(m) {
       muteGroup(m), slider(m, 'sharpness', 'Sharpness'), presetGroup(m), powerGroup(m));
     if (state.canEdit) body.push(advanced(m));
   }
+  const badge = issue ? el('span', { class: 'badge outline' }, 'Controls unavailable')
+    : m.ddc ? el('span', { class: 'badge secondary' }, 'DDC/CI') : el('span', { class: 'badge outline' }, 'Not controllable');
   return el('section', { class: 'card' + (state.busy.has(m.id) ? ' busy' : ''), 'data-id': String(m.id) },
-    el('div', { class: 'card-content' }, el('div', { class: 'mon-head' }, icon('monitor'), el('span', { class: 'mon-name' }, m.name),
-      m.ddc ? el('span', { class: 'badge secondary' }, 'DDC/CI') : el('span', { class: 'badge outline' }, 'Not controllable')), body));
+    el('div', { class: 'card-content' }, el('div', { class: 'mon-head' }, icon('monitor'), el('span', { class: 'mon-name' }, m.name), badge), body));
 }
 
 function replaceCard(m) {
