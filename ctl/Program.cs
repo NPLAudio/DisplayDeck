@@ -115,6 +115,17 @@ namespace DisplayDeck.Ctl
                             VcpValue v = Ddc.Get(m, code);
                             if (v != null) features[code.ToString(System.Globalization.CultureInfo.InvariantCulture)] = VcpJson(code, v);
                         }
+                        // Some monitors (a Samsung among them) answer a power-state read with a copy of whatever they
+                        // said last. Ask again after reading something else: a real answer does not change.
+                        string powerKey = Ddc.PowerMode.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                        if (features.ContainsKey(powerKey))
+                        {
+                            Ddc.Get(m, Ddc.Brightness);
+                            VcpValue again = Ddc.Get(m, Ddc.PowerMode);
+                            Dictionary<string, object> first = (Dictionary<string, object>)features[powerKey];
+                            if (again == null || again.Current != Convert.ToUInt32(first["current"]) || again.Max != Convert.ToUInt32(first["max"]))
+                                features.Remove(powerKey);
+                        }
                         o["features"] = features;
                         o["ddc"] = features.Count > 0;
                         list.Add(o);

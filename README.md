@@ -176,6 +176,7 @@ Good to know:
 - TVs usually do not listen for these commands. They use HDMI-CEC, which a PC can only send with extra hardware, so they show as **Not controllable**.
 - Once a monitor is switched to an input from another device, this PC can no longer reach it. Switch it back with its own buttons or from the other device.
 - Some monitors number their inputs differently from the standard, so use the monitor's own list (shown automatically) rather than guessing.
+- Some monitors answer unreliably, for example by repeating their last reply when asked for their power state. DisplayDeck double-checks what it can and hides a reading it cannot trust, but still offers the buttons if the monitor lists the feature.
 - Windows refuses to hand out controls for some NVIDIA-driven displays, so DisplayDeck talks to those through the graphics card directly. This uses a file the NVIDIA driver already provides; nothing extra is installed.
 
 ## Stream Deck

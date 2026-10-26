@@ -101,7 +101,7 @@ async function send(m, code, value, done) {
   state.busy.add(m.id);
   setStatus('Sending…');
   try {
-    await postJson(`/api/monitors/${m.id}/set`, { code, value });
+    await postJson(`/api/monitors/${m.id}/set`, { code: hex(code), value });
     setStatus(done || 'Done.', 'ok');
     return true;
   } catch (e) {
@@ -137,7 +137,10 @@ function inputGroup(m) {
   const caps = state.caps.get(m.id);
   const fromCaps = caps && caps.inputs && caps.inputs.length;
   let values = fromCaps ? [...caps.inputs] : [...COMMON_INPUTS];
-  if (!values.includes(cur.current)) values.push(cur.current);
+  // A monitor that lists its inputs but reports a current one that is not on the list (some report an internal number)
+  // would be mislabeled, so say so instead of guessing.
+  const unlisted = fromCaps && !values.includes(cur.current);
+  if (!fromCaps && !values.includes(cur.current)) values.push(cur.current);
   values = [...new Set(values)].sort((a, b) => a - b);
   const chips = values.map((v) => {
     const on = v === cur.current;
@@ -151,14 +154,15 @@ function inputGroup(m) {
     ? 'Could not read this display’s own list of inputs, so common ones are shown.'
     : caps ? (fromCaps ? '' : 'This display did not list its inputs, so common ones are shown.') : 'Reading this display’s list of inputs…';
   return el('div', { class: 'group' },
-    el('div', { class: 'group-label' }, el('span', {}, 'Input'), el('span', { class: 'group-value' }, inputLabel(cur.current))),
+    el('div', { class: 'group-label' }, el('span', {}, 'Input'), el('span', { class: 'group-value' }, unlisted ? `current input not reported (${hex(cur.current)})` : inputLabel(cur.current))),
     el('div', { class: 'chips' }, chips), note ? el('p', { class: 'hint' }, note) : null);
 }
 
 function powerGroup(m) {
-  const cur = m.controls.power;
-  if (!cur) return null;
   const caps = state.caps.get(m.id);
+  // Some monitors do not report their power state reliably. If they still list the feature, offer the buttons without a state.
+  const cur = m.controls.power || (caps && caps.has && caps.has.power ? { current: null } : null);
+  if (!cur) return null;
   let values = caps && caps.power && caps.power.length ? [...caps.power] : [1, 4, 5];
   if (!values.includes(1)) values.unshift(1);
   values = [...new Set(values)].sort((a, b) => a - b);
@@ -166,7 +170,7 @@ function powerGroup(m) {
     if (v !== 1 && !confirm(`Turn ${m.name} ${POWER[v] ? POWER[v].toLowerCase() : 'off'}?\n\nIt may need its power button to wake up again.`)) return;
     await setControl(m, 'power', v, `${m.name}: ${POWER[v] || 'power ' + v}.`);
   } }, POWER[v] || `Power ${v}`));
-  return el('div', { class: 'group' }, el('div', { class: 'group-label' }, el('span', {}, 'Power'), el('span', { class: 'group-value' }, POWER[cur.current] || String(cur.current))),
+  return el('div', { class: 'group' }, el('div', { class: 'group-label' }, el('span', {}, 'Power'), el('span', { class: 'group-value' }, cur.current == null ? 'state not reported' : (POWER[cur.current] || String(cur.current)))),
     el('div', { class: 'chips' }, chips));
 }
 

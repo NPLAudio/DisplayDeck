@@ -23,7 +23,12 @@ function exclusive(fn) {
 const capsCache = new Map(); // target id -> { at, value }
 const CAPS_TTL = 10 * 60 * 1000;
 
+// A number is the code itself (96 is 0x60); text is hex, with or without 0x ("60" and "0x60" are both 0x60).
 function parseCode(v) {
+  if (typeof v === 'number') {
+    if (Number.isInteger(v) && v >= 0 && v <= 255) return v;
+    throw Object.assign(new Error('A feature code is a number from 0 to 255, or hex from 00 to FF.'), { status: 400 });
+  }
   const s = String(v == null ? '' : v).trim().replace(/^0x/i, '');
   if (!/^[0-9a-f]{1,2}$/i.test(s)) throw Object.assign(new Error('A feature code is a hex number from 00 to FF (for example 0x60).'), { status: 400 });
   return parseInt(s, 16);

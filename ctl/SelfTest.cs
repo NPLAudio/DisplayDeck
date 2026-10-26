@@ -185,6 +185,7 @@ namespace DisplayDeck.Ctl
             Capabilities nested = Ddc.ParseCapabilities("(vcp(10 60(11(01 02) 12) 62)model(X(1)))");
             Check(nested.Codes[0x60].Count == 2 && nested.Codes.ContainsKey(0x62), "skips nested groups instead of losing track");
             Check(Ddc.ParseCapabilities("").Codes.Count == 0 && Ddc.ParseCapabilities(null).Codes.Count == 0, "an empty capabilities string lists nothing");
+            Check(Ddc.IsComplete("(prot(monitor)vcp(10 60(0F 11)))") && !Ddc.IsComplete("(prot(monitor)vcp(10 60(0F 1") && !Ddc.IsComplete("") && !Ddc.IsComplete(null) && !Ddc.IsComplete("vcp(10)"), "tells a complete capabilities string from a cut-off one");
             Check(Ddc.IsBlocked(0x04) && Ddc.IsBlocked(0x08) && !Ddc.IsBlocked(0x60) && !Ddc.IsBlocked(0x10), "factory reset codes are blocked");
 
             Dictionary<string, object> r = new Dictionary<string, object>();

@@ -103,6 +103,32 @@ test('feature codes and values are checked before anything is sent', { skip }, a
   assert.equal(monitors.parseCode('60'), 0x60);
 });
 
+test('a numeric code is the code itself, as the page sends it', { skip }, async () => {
+  resetLog();
+  await monitors.set(cfg, 4353, 0x60, 17);
+  await monitors.set(cfg, 4353, 96, 18);
+  await monitors.set(cfg, 4353, 0x10, 50);
+  assert.deepEqual(calls(), ['ddc|set|4353|0x60|17', 'ddc|set|4353|0x60|18', 'ddc|set|4353|0x10|50']);
+  assert.equal(monitors.parseCode(96), 0x60);
+  assert.equal(monitors.parseCode('96'), 0x96, 'text is hex');
+  assert.throws(() => monitors.parseCode(256), (e) => e.status === 400);
+  assert.throws(() => monitors.parseCode(-1), (e) => e.status === 400);
+});
+
+test('every control on the page can be sent, using exactly the codes the page uses', { skip }, async () => {
+  // The page keeps its feature codes in one table; pull it out of the page itself so this cannot drift.
+  const page = fs.readFileSync(path.join(__dirname, '..', 'public', 'monitors.html'), 'utf8');
+  const table = /const KEYS = ({[^}]*});/.exec(page);
+  assert.ok(table, 'the page lists its feature codes');
+  const keys = Function('return ' + table[1])();
+  assert.ok(Object.keys(keys).length >= 8);
+  resetLog();
+  for (const [name, code] of Object.entries(keys)) {
+    for (const form of [code, '0x' + code.toString(16)]) await monitors.set(cfg, 4353, form, 1);
+  }
+  assert.equal(calls().length, Object.keys(keys).length * 2, 'nothing the page sends is refused');
+});
+
 test('reading a feature returns its value and maximum', { skip }, async () => {
   const r = await monitors.get(cfg, 4353, '0x10');
   assert.deepEqual(r, { code: 16, current: 70, max: 100 });

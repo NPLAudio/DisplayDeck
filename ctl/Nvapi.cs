@@ -135,7 +135,13 @@ namespace DisplayDeck.Ctl
         // where the checksum is the XOR of 0x6E and every byte before it. The reply starts with 0x6E.
 
         const byte WriteAddress = 0x6E, ReadAddress = 0x6F, HostSource = 0x51;
-        const int Settle = 50; // milliseconds a monitor needs between a request and its reply
+        static readonly int Settle = SettleFromEnvironment(); // milliseconds a monitor needs between a request and its reply
+
+        static int SettleFromEnvironment()
+        {
+            int v;
+            return int.TryParse(Environment.GetEnvironmentVariable("DISPLAYDECK_DDC_SETTLE"), out v) && v >= 20 && v <= 2000 ? v : 50;
+        }
 
         static bool Write(NvMonitor m, byte[] body)
         {

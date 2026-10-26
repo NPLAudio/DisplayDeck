@@ -215,6 +215,39 @@ namespace DisplayDeck.Ctl
         /// <summary>The capabilities string, which can take a few seconds; null when the display does not answer.</summary>
         public static string ReadCapabilities(DdcMonitor m)
         {
+            // Some monitors (a Samsung among them) sometimes return a garbled or shortened list. Trust a result only
+            // when two reads in a row agree, and always when its brackets balance.
+            string previous = null;
+            for (int attempt = 0; attempt < 5; attempt++)
+            {
+                string s = ReadCapabilitiesOnce(m);
+                if (s != null && IsComplete(s))
+                {
+                    if (previous != null && previous == s) return s;
+                    previous = s;
+                }
+                else System.Threading.Thread.Sleep(150);
+            }
+            return previous;
+        }
+
+        /// <summary>True when the text starts with ( and every ( has its ).</summary>
+        public static bool IsComplete(string s)
+        {
+            if (s == null) return false;
+            string t = s.Trim();
+            if (t.Length < 2 || t[0] != (char)40) return false;
+            int depth = 0;
+            foreach (char c in t)
+            {
+                if (c == (char)40) depth++;
+                else if (c == (char)41) { depth--; if (depth < 0) return false; }
+            }
+            return depth == 0;
+        }
+
+        static string ReadCapabilitiesOnce(DdcMonitor m)
+        {
             if (m.Nv != null) return Nvapi.ReadCapabilities(m.Nv);
             uint len;
             if (!GetCapabilitiesStringLength(m.Handle, out len) || len < 2 || len > 8192) return null;
