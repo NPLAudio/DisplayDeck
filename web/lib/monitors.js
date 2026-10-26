@@ -57,7 +57,7 @@ async function list(cfg) {
       const v = pick(m.features, code);
       if (v) controls[key] = v;
     }
-    out.push({ id: m.targetId, name, hwId: m.hwId, ddc: !!m.ddc, backend: m.backend || 'windows', controls });
+    out.push({ id: m.targetId, name, hwId: m.hwId, ddc: !!m.ddc, backend: m.backend || 'windows', connector: m.connector || 'other', controls });
   }
   return { monitors: out, notes: notes || [] };
 }

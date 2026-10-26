@@ -30,12 +30,12 @@ public static class FakeCtl
         if (g == "ddc" && c == "list")
         {
             Console.Write("{\"monitors\":[" +
-              "{\"targetId\":4353,\"name\":\"MPG 491C OLED\",\"hwId\":\"MSI3FA8\",\"backend\":\"nvidia\",\"ddc\":true,\"features\":{" +
+              "{\"targetId\":4353,\"name\":\"MPG 491C OLED\",\"hwId\":\"MSI3FA8\",\"backend\":\"nvidia\",\"connector\":\"displayport\",\"ddc\":true,\"features\":{" +
                 "\"96\":{\"code\":96,\"current\":15,\"max\":3},\"16\":{\"code\":16,\"current\":70,\"max\":100},\"18\":{\"code\":18,\"current\":65,\"max\":100}," +
                 "\"98\":{\"code\":98,\"current\":28,\"max\":100},\"141\":{\"code\":141,\"current\":2,\"max\":2},\"214\":{\"code\":214,\"current\":1,\"max\":4},\"20\":{\"code\":20,\"current\":5,\"max\":11}}}," +
-              "{\"targetId\":4356,\"name\":\"C49RG9x\",\"hwId\":\"SAM0F9C\",\"backend\":\"windows\",\"ddc\":true,\"features\":{" +
+              "{\"targetId\":4356,\"name\":\"C49RG9x\",\"hwId\":\"SAM0F9C\",\"backend\":\"nvidia\",\"connector\":\"displayport\",\"ddc\":true,\"features\":{" +
                 "\"96\":{\"code\":96,\"current\":16,\"max\":18},\"16\":{\"code\":16,\"current\":40,\"max\":100}}}," +
-              "{\"targetId\":4355,\"name\":\"SONY TV\",\"hwId\":\"SNY0406\",\"backend\":\"none\",\"ddc\":false,\"features\":{}}]}");
+              "{\"targetId\":4355,\"name\":\"SONY TV\",\"hwId\":\"SNY0406\",\"backend\":\"none\",\"connector\":\"hdmi\",\"ddc\":false,\"features\":{}}]}");
             return 0;
         }
         if (g == "ddc" && c == "caps")

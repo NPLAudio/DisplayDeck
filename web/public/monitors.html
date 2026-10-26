@@ -216,8 +216,18 @@ function advanced(m) {
     out);
 }
 
+// Known cases where a display accepts DDC/CI commands but does nothing with them.
+function knownIssue(m) {
+  if (/^SAM/i.test(m.hwId || '') && m.connector === 'displayport') {
+    return 'Many Samsung ultrawides do not implement DDC/CI on DisplayPort: they accept these commands and report new values, but the screen does not change. If the controls below do nothing, try this display on an HDMI port.';
+  }
+  return null;
+}
+
 function card(m) {
   const body = [];
+  const issue = m.ddc ? knownIssue(m) : null;
+  if (issue) body.push(el('div', { class: 'alert warn', style: 'margin-top:12px' }, icon('alert'), el('div', {}, el('strong', {}, 'This display may ignore these controls. '), issue)));
   if (!m.ddc) {
     body.push(el('div', { class: 'alert warn', style: 'margin-top:12px' }, icon('alert'),
       el('div', {}, m.backend === 'none'

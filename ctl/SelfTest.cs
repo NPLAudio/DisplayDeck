@@ -186,6 +186,7 @@ namespace DisplayDeck.Ctl
             Check(nested.Codes[0x60].Count == 2 && nested.Codes.ContainsKey(0x62), "skips nested groups instead of losing track");
             Check(Ddc.ParseCapabilities("").Codes.Count == 0 && Ddc.ParseCapabilities(null).Codes.Count == 0, "an empty capabilities string lists nothing");
             Check(Ddc.IsComplete("(prot(monitor)vcp(10 60(0F 11)))") && !Ddc.IsComplete("(prot(monitor)vcp(10 60(0F 1") && !Ddc.IsComplete("") && !Ddc.IsComplete(null) && !Ddc.IsComplete("vcp(10)"), "tells a complete capabilities string from a cut-off one");
+            Check(Ddc.ConnectorName(10) == "displayport" && Ddc.ConnectorName(5) == "hdmi" && Ddc.ConnectorName(4) == "dvi" && Ddc.ConnectorName(0) == "vga" && Ddc.ConnectorName(99) == "other", "names the cable a display uses");
             Check(Ddc.IsBlocked(0x04) && Ddc.IsBlocked(0x08) && !Ddc.IsBlocked(0x60) && !Ddc.IsBlocked(0x10), "factory reset codes are blocked");
 
             Dictionary<string, object> r = new Dictionary<string, object>();

@@ -109,6 +109,7 @@ namespace DisplayDeck.Ctl
                         o["hwId"] = m.HwId;
                         o["description"] = m.Description;
                         o["backend"] = m.Backend;
+                        o["connector"] = m.Connector;
                         Dictionary<string, object> features = new Dictionary<string, object>();
                         foreach (int code in probe)
                         {
@@ -141,6 +142,7 @@ namespace DisplayDeck.Ctl
                         o["name"] = li.Target.Monitor.FriendlyName;
                         o["hwId"] = ProfileFile.EdidHwId(li.Target.Monitor.ManufactureId, li.Target.Monitor.ProductCodeId);
                         o["backend"] = "none";
+                        o["connector"] = Ddc.ConnectorName(li.Target.Path.targetInfo.outputTechnology);
                         o["features"] = new Dictionary<string, object>();
                         o["ddc"] = false;
                         list.Add(o);

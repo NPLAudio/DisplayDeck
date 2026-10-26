@@ -30,6 +30,8 @@ test('lists each display with what it can do right now', { skip }, async () => {
   assert.equal(mpg.name, 'MPG 491C OLED');
   assert.equal(mpg.ddc, true);
   assert.equal(mpg.backend, 'nvidia');
+  assert.equal(mpg.connector, 'displayport');
+  assert.equal(r.monitors.find((m) => m.id === 4355).connector, 'hdmi');
   assert.deepEqual(mpg.controls.brightness, { current: 70, max: 100 });
   assert.equal(mpg.controls.input.current, 15, 'DisplayPort 1');
   assert.equal(mpg.controls.mute.current, 2);

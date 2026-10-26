@@ -54,6 +54,8 @@ namespace DisplayDeck.Ctl
         /// <summary>Set when the monitor is reached through the NVIDIA card instead of the Windows monitor API.</summary>
         public NvMonitor Nv;
         public string Backend = "windows";
+        /// <summary>How the display is connected: displayport, hdmi, dvi, vga or other.</summary>
+        public string Connector = "other";
     }
 
     public static class Ddc
@@ -87,6 +89,18 @@ namespace DisplayDeck.Ctl
         /// release them with Release.
         /// </summary>
         public static List<string> Notes = new List<string>();
+
+        public static string ConnectorName(uint outputTechnology)
+        {
+            switch (outputTechnology)
+            {
+                case 10: case 11: case 12: case 13: return "displayport";   // DisplayPort and USB-C style outputs
+                case 5: return "hdmi";
+                case 4: return "dvi";
+                case 0: return "vga";
+                default: return "other";
+            }
+        }
 
         public static List<DdcMonitor> Open()
         {
@@ -125,6 +139,7 @@ namespace DisplayDeck.Ctl
                         MonitorInfo mon = liveByTarget[t].Target.Monitor;
                         m.Name = mon.FriendlyName;
                         m.HwId = ProfileFile.EdidHwId(mon.ManufactureId, mon.ProductCodeId);
+                        m.Connector = ConnectorName(liveByTarget[t].Target.Path.targetInfo.outputTechnology);
                     }
                     else
                     {
@@ -153,6 +168,7 @@ namespace DisplayDeck.Ctl
                 MonitorInfo mon = liveByTarget[kv.Value].Target.Monitor;
                 m.Name = mon.FriendlyName;
                 m.HwId = ProfileFile.EdidHwId(mon.ManufactureId, mon.ProductCodeId);
+                m.Connector = ConnectorName(liveByTarget[kv.Value].Target.Path.targetInfo.outputTechnology);
                 found.Add(m);
             }
             found.Sort(delegate (DdcMonitor a, DdcMonitor b) { return a.TargetId.CompareTo(b.TargetId); });
