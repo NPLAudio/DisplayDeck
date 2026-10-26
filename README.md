@@ -51,12 +51,41 @@ Requirements: Windows 10 or 11 (64-bit).
 
 ## A quick tour
 
-1. Arrange your monitors in Windows the way you want, then choose **Save current layout...** (on the page or
-   in the tray menu) and name it. Repeat for each arrangement you use.
-2. Each saved layout appears as a card. Tap a card to apply it.
-3. Press **Edit audio** on a card to choose its playback device and spatial format. From then on applying
-   the card switches the sound too.
-4. Changed your mind? **Undo layout change** goes back to the previous layout.
+The screenshots use made-up profiles and devices.
+
+### 1. Save your first layout
+
+1. Arrange your monitors in Windows the way you want them.
+2. Right-click the DisplayDeck tray icon and choose **Save current layout...** (or press **Save layout** on the page).
+3. Type a name, such as "Desk", and confirm. Repeat for each arrangement you use.
+
+![The Profiles page with one-line cards, the current profile highlighted](docs/images/profiles-collapsed.png)
+
+Each saved layout is one card. The highlighted card marked **Current** is the one that matches your screens right now.
+
+### 2. Apply a profile
+
+- On the PC: left-click the tray icon to open the page and tap a card, or right-click the tray icon and pick a profile from the menu.
+- On your phone: see [Use it from your phone](INSTALL.md#4-use-it-from-your-phone-optional).
+- On a Stream Deck: see [Stream Deck](#stream-deck).
+
+Applying a profile switches the displays and, if the profile has audio settings, the sound output too.
+
+### 3. Look inside a card, and set its audio
+
+1. Press the arrow on the right of a card to expand it. You see a to-scale preview of the layout, each display's resolution and refresh rate, and the audio settings. The star marks the primary display.
+2. Press **Edit audio** to pick a playback device and a spatial format. The list shows only what that device supports.
+3. The **Audio devices** card at the bottom lists every playback device right now, and which profiles use it.
+
+![An expanded profile card showing the layout preview, displays and audio, with the audio devices list open](docs/images/profiles-expanded.png)
+
+On a phone the same page fits the screen:
+
+<img src="docs/images/profiles-phone.png" alt="The Profiles page on a phone" width="300">
+
+### 4. Changed your mind?
+
+Press **Undo** at the top of the page (or **Undo layout change** in the tray menu) to go back to the previous layout.
 
 ## How it works
 
