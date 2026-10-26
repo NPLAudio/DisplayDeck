@@ -131,3 +131,16 @@ These endpoints only answer requests from the PC running DisplayDeck.
 
 A `layout` is `{ displays: [{ targetId, name, enabled, primary, width, height, x, y, refresh, rotation }] }`, where
 `rotation` is 1 to 4 (0, 90, 180 and 270 degrees) and `width`/`height` are the size on the desktop after rotation.
+
+## Monitor controls API
+
+DDC/CI commands to the monitors. Changing a setting is open to any signed-in device; raw commands and raw reads only answer requests from the PC running DisplayDeck.
+
+| Method and path | What it does |
+| --- | --- |
+| `GET /api/monitors` | The displays that are on, each with `id` (the display's target id), `name`, `ddc` (does it answer), `backend` (`windows`, `nvidia` or `none`) and `controls`: for each feature it reports, `{ current, max }`. Features: `input`, `brightness`, `contrast`, `volume`, `mute`, `power`, `preset`, `sharpness`. |
+| `GET /api/monitors/<id>/capabilities` | The monitor's own capabilities string, and from it the `inputs`, `presets` and `power` values it lists. Slow (a second or two), so it is remembered for ten minutes; add `?refresh=1` to ask again. |
+| `POST /api/monitors/<id>/set` | Body `{ code, value }`, where `code` is a feature code in hex (such as `"0x60"` for input) and `value` is 0 to 65535. Only the features above are accepted. With `raw: true` (this PC only) any feature code is accepted, except the ones that reset the monitor to factory settings. |
+| `GET /api/monitors/<id>/vcp?code=0x10` | Reads one feature, returning `{ code, current, max }` (this PC only). |
+
+Input values follow the monitor standard (MCCS): `0x0F` DisplayPort 1, `0x10` DisplayPort 2, `0x11` HDMI 1, `0x12` HDMI 2. Some monitors use their own numbers, which the capabilities list shows.

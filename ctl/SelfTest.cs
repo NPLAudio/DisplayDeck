@@ -174,6 +174,19 @@ namespace DisplayDeck.Ctl
             List<SpecDisplay> parsed = LayoutBuilder.ParseSpec(shim.Parse("{\"displays\":[{\"targetId\":4353,\"name\":\"A\",\"enabled\":true,\"primary\":true,\"width\":2560,\"height\":1440,\"x\":0,\"y\":0,\"refresh\":143.97,\"rotation\":1}]}"));
             Check(parsed.Count == 1 && parsed[0].TargetId == 4353 && parsed[0].Width == 2560 && Math.Abs(parsed[0].Refresh - 143.97) < 0.001 && parsed[0].Primary, "reads the layout json");
 
+            // ---- DDC/CI capabilities string ----
+            Capabilities cap = Ddc.ParseCapabilities("(prot(monitor)type(LCD)model(MPG 491C)cmds(01 02 03 07 0C E3 F3)vcp(02 04 05 08 10 12 14(01 05 08 0B) 16 18 1A 52 60(0F 11 12 1B) 62 87 8D AC AE B2 D6(01 04 05) DC(00 03 05) E0 E1 E2(00 01 02 0A))mswhql(1)asset_eep(40)mccs_ver(2.2))");
+            Check(cap.Model == "MPG 491C" && cap.Type == "LCD" && cap.MccsVersion == "2.2", "reads the model, type and MCCS version");
+            Check(cap.Codes.ContainsKey(0x10) && cap.Codes.ContainsKey(0x62) && cap.Codes.ContainsKey(0xD6), "lists the supported feature codes");
+            Check(cap.Codes[0x60].Count == 4 && cap.Codes[0x60][0] == 0x0F && cap.Codes[0x60][3] == 0x1B, "lists the inputs the monitor offers");
+            Check(cap.Codes[0x10].Count == 0, "a plain feature has no value list");
+            Check(cap.Codes[0xD6].Count == 3 && cap.Codes[0x14].Count == 4, "lists power and color preset values");
+            Check(cap.Codes.ContainsKey(0xE2) && cap.Codes[0xE2].Count == 4, "reads the last feature in the list");
+            Capabilities nested = Ddc.ParseCapabilities("(vcp(10 60(11(01 02) 12) 62)model(X(1)))");
+            Check(nested.Codes[0x60].Count == 2 && nested.Codes.ContainsKey(0x62), "skips nested groups instead of losing track");
+            Check(Ddc.ParseCapabilities("").Codes.Count == 0 && Ddc.ParseCapabilities(null).Codes.Count == 0, "an empty capabilities string lists nothing");
+            Check(Ddc.IsBlocked(0x04) && Ddc.IsBlocked(0x08) && !Ddc.IsBlocked(0x60) && !Ddc.IsBlocked(0x10), "factory reset codes are blocked");
+
             Dictionary<string, object> r = new Dictionary<string, object>();
             r["passed"] = passed;
             r["failed"] = new List<object>(failed.ToArray());

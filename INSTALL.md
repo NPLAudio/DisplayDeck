@@ -47,6 +47,10 @@ If you already have layout files (`.xml`) in another folder, open **Settings...*
 
 Press **New layout** on the Profiles page, or **Edit layout** on a card. Drag the screens, set their sizes and refresh rates, press **Try layout** to see it (it goes back by itself after 15 seconds unless you press **Keep**), then name it and press **Save profile**.
 
+### Switch monitor inputs and settings (optional)
+
+Open the **Monitors** tab. Tap an input button (for example **HDMI 1**) to switch that monitor to it, or use the sliders for brightness, contrast and speaker volume. This needs DDC/CI, which most monitors support; if a monitor shows as **Not controllable**, look for a **DDC/CI** setting in its on-screen menu. TVs usually cannot be controlled this way.
+
 ## 3. Set up audio (optional)
 
 On any card press **Edit audio**, choose the playback device, choose the spatial format (the list shows what
@@ -161,6 +165,12 @@ The app was added from a page without the access key. Delete the icon, scan the 
 
 **The home screen icon is blank or shows a letter instead of the DisplayDeck mark.**
 iOS only picks up the icon when the app is added. Delete the icon, open the link in Safari again and re-add it. Add it from Safari: other iOS browsers may not offer **Add to Home Screen** on older iOS versions.
+
+**A monitor on the Monitors tab says "Not controllable".**
+Open the monitor's on-screen menu and make sure **DDC/CI** is turned on (it is sometimes under a general or system menu). Some monitors only allow it on certain inputs or when a power-saving mode is off. TVs usually do not support it at all.
+
+**Switching a monitor's input made the screen go blank.**
+The monitor is now showing an input that this PC is not on (or that has no signal). Use the monitor's own buttons to select the PC's input again.
 
 **There is no "Install Stream Deck plugin..." item.**
 It only appears when Stream Deck is installed on this PC and the installer included the plugin. Installers

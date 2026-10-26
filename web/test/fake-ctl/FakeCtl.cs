@@ -27,6 +27,25 @@ public static class FakeCtl
             return 0;
         }
         if (g == "display" && (c == "remember" || c == "undo")) { Console.Write("{\"ok\":true,\"skipped\":[]}"); return 0; }
+        if (g == "ddc" && c == "list")
+        {
+            Console.Write("{\"monitors\":[" +
+              "{\"targetId\":4353,\"name\":\"MPG 491C OLED\",\"hwId\":\"MSI3FA8\",\"backend\":\"nvidia\",\"ddc\":true,\"features\":{" +
+                "\"96\":{\"code\":96,\"current\":15,\"max\":3},\"16\":{\"code\":16,\"current\":70,\"max\":100},\"18\":{\"code\":18,\"current\":65,\"max\":100}," +
+                "\"98\":{\"code\":98,\"current\":28,\"max\":100},\"141\":{\"code\":141,\"current\":2,\"max\":2},\"214\":{\"code\":214,\"current\":1,\"max\":4},\"20\":{\"code\":20,\"current\":5,\"max\":11}}}," +
+              "{\"targetId\":4356,\"name\":\"C49RG9x\",\"hwId\":\"SAM0F9C\",\"backend\":\"windows\",\"ddc\":true,\"features\":{" +
+                "\"96\":{\"code\":96,\"current\":16,\"max\":18},\"16\":{\"code\":16,\"current\":40,\"max\":100}}}," +
+              "{\"targetId\":4355,\"name\":\"SONY TV\",\"hwId\":\"SNY0406\",\"backend\":\"none\",\"ddc\":false,\"features\":{}}]}");
+            return 0;
+        }
+        if (g == "ddc" && c == "caps")
+        {
+            if (a.Length > 2 && a[2] == "4356") { Console.Write("{\"error\":\"The display did not report its capabilities.\"}"); return 1; }
+            Console.Write("{\"raw\":\"(prot(monitor)type(lcd)model(FALCON)vcp(10 12 14(01 05 08) 60(11 12 0F 10) 62 8D D6(01 04))mccs_ver(2.0))\",\"model\":\"FALCON\",\"type\":\"lcd\",\"mccsVersion\":\"2.0\",\"codes\":{\"16\":[],\"18\":[],\"20\":[1,5,8],\"96\":[17,18,15,16],\"98\":[],\"141\":[],\"214\":[1,4]}}");
+            return 0;
+        }
+        if (g == "ddc" && c == "get") { Console.Write("{\"code\":" + Convert.ToInt32(a[3].Replace("0x", ""), 16) + ",\"current\":70,\"max\":100}"); return 0; }
+        if (g == "ddc" && c == "set") { Console.Write("{\"ok\":true}"); return 0; }
         if (g == "audio" && c == "list")
         {
             Console.Write("{\"devices\":[{\"id\":\"Studio\\\\Device\\\\Main Out\\\\Render\",\"name\":\"Main Out 1-2\",\"adapter\":\"Studio Interface\",\"isDefault\":true,\"spatialGuid\":\"\",\"formats\":[]}]}");

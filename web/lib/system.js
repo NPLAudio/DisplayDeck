@@ -84,6 +84,22 @@ async function rememberLayout(cfg, file) {
   return ctl(cfg, ['display', 'remember', file]);
 }
 
+// ---- monitor controls (DDC/CI) ----
+
+// Reading every feature of every monitor takes a moment, so these get longer timeouts.
+async function ddcList(cfg) {
+  return ctl(cfg, ['ddc', 'list'], 60000);
+}
+async function ddcCaps(cfg, target) {
+  return ctl(cfg, ['ddc', 'caps', String(target)], 60000);
+}
+async function ddcGet(cfg, target, code) {
+  return ctl(cfg, ['ddc', 'get', String(target), '0x' + code.toString(16)], 20000);
+}
+async function ddcSet(cfg, target, code, value) {
+  return ctl(cfg, ['ddc', 'set', String(target), '0x' + code.toString(16), String(value)], 20000);
+}
+
 async function undoLayout(cfg) {
   return ctl(cfg, ['display', 'undo'], 45000);
 }
@@ -152,4 +168,4 @@ function edidName(hwId) {
   });
 }
 
-module.exports = { saveLiveXml, saveLayoutTo, applyProfile, undoLayout, connectedDisplays, buildLayout, validateProfile, rememberLayout, tmpFile, listPlaybackDevices, applyAudio, pickPath, edidName };
+module.exports = { saveLiveXml, saveLayoutTo, applyProfile, undoLayout, connectedDisplays, ddcList, ddcCaps, ddcGet, ddcSet, buildLayout, validateProfile, rememberLayout, tmpFile, listPlaybackDevices, applyAudio, pickPath, edidName };

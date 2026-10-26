@@ -5,6 +5,10 @@
 //   display connected                       connected displays with the modes each supports
 //   display build <layout.json> <out.xml> [template.xml ...]
 //   display remember <file.xml>             make this layout the one "undo" returns to
+//   ddc list                                monitors that answer DDC/CI, with their current settings
+//   ddc caps <targetId>                     the capabilities string and what it lists
+//   ddc get <targetId> <code>               read one feature (code in hex, for example 0x60)
+//   ddc set <targetId> <code> <value>       write one feature
 //   audio list
 //   audio default <id>
 //   audio spatial <id> <guid|name|off>
@@ -66,6 +70,113 @@ namespace DisplayDeck.Ctl
             string json = js.Serialize(o);
             if (resultFile != null) File.WriteAllText(resultFile, json, new UTF8Encoding(false));
             else Console.Out.Write(json);
+        }
+
+        static int ParseCode(string s)
+        {
+            string t = (s ?? "").Trim();
+            if (t.StartsWith("0x", StringComparison.OrdinalIgnoreCase)) t = t.Substring(2);
+            int v;
+            if (!int.TryParse(t, System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out v) || v < 0 || v > 255)
+                throw new CtlException("A feature code is a hex number from 00 to FF (for example 0x60).");
+            return v;
+        }
+
+        static Dictionary<string, object> VcpJson(int code, VcpValue v)
+        {
+            Dictionary<string, object> o = new Dictionary<string, object>();
+            o["code"] = code;
+            o["current"] = v.Current;
+            o["max"] = v.Max;
+            return o;
+        }
+
+        static Dictionary<string, object> DdcCommand(string cmd, List<string> args)
+        {
+            Dictionary<string, object> r = new Dictionary<string, object>();
+            List<DdcMonitor> monitors = Ddc.Open();
+            try
+            {
+                if (cmd == "list")
+                {
+                    int[] probe = new int[] { Ddc.InputSource, Ddc.Brightness, Ddc.Contrast, Ddc.Volume, Ddc.Mute, Ddc.PowerMode, Ddc.ColorPreset, Ddc.Sharpness };
+                    List<object> list = new List<object>();
+                    foreach (DdcMonitor m in monitors)
+                    {
+                        Dictionary<string, object> o = new Dictionary<string, object>();
+                        o["targetId"] = m.TargetId;
+                        o["name"] = m.Name.Length > 0 ? m.Name : m.Description;
+                        o["hwId"] = m.HwId;
+                        o["description"] = m.Description;
+                        o["backend"] = m.Backend;
+                        Dictionary<string, object> features = new Dictionary<string, object>();
+                        foreach (int code in probe)
+                        {
+                            VcpValue v = Ddc.Get(m, code);
+                            if (v != null) features[code.ToString(System.Globalization.CultureInfo.InvariantCulture)] = VcpJson(code, v);
+                        }
+                        o["features"] = features;
+                        o["ddc"] = features.Count > 0;
+                        list.Add(o);
+                    }
+                    // Displays that are on but cannot be reached still get an entry, so the page can say why.
+                    HashSet<uint> reached = new HashSet<uint>();
+                    foreach (DdcMonitor m in monitors) reached.Add(m.TargetId);
+                    foreach (LiveInfo li in LiveDisplays.Query(false))
+                    {
+                        if (!li.Active || reached.Contains(li.Target.Path.targetInfo.id)) continue;
+                        Dictionary<string, object> o = new Dictionary<string, object>();
+                        o["targetId"] = li.Target.Path.targetInfo.id;
+                        o["name"] = li.Target.Monitor.FriendlyName;
+                        o["hwId"] = ProfileFile.EdidHwId(li.Target.Monitor.ManufactureId, li.Target.Monitor.ProductCodeId);
+                        o["backend"] = "none";
+                        o["features"] = new Dictionary<string, object>();
+                        o["ddc"] = false;
+                        list.Add(o);
+                    }
+                    r["monitors"] = list;
+                    if (list.Count == 0) r["notes"] = new List<object>(Ddc.Notes.ToArray());
+                    return r;
+                }
+                uint target;
+                if (!uint.TryParse(Arg(args, 2, "display id"), out target)) throw new CtlException("The display id must be a number.");
+                DdcMonitor mon = Ddc.Find(monitors, target);
+                if (cmd == "caps")
+                {
+                    string raw = Ddc.ReadCapabilities(mon);
+                    if (raw == null) throw new CtlException("The display did not report its capabilities. It may not support DDC/CI, or DDC/CI is switched off in its on-screen menu.");
+                    Capabilities c = Ddc.ParseCapabilities(raw);
+                    r["raw"] = c.Raw;
+                    r["model"] = c.Model;
+                    r["type"] = c.Type;
+                    r["mccsVersion"] = c.MccsVersion;
+                    Dictionary<string, object> codes = new Dictionary<string, object>();
+                    foreach (KeyValuePair<int, List<int>> kv in c.Codes)
+                        codes[kv.Key.ToString(System.Globalization.CultureInfo.InvariantCulture)] = new List<object>(kv.Value.ConvertAll<object>(delegate (int x) { return x; }).ToArray());
+                    r["codes"] = codes;
+                    return r;
+                }
+                if (cmd == "get")
+                {
+                    int code = ParseCode(Arg(args, 3, "feature code"));
+                    VcpValue v = Ddc.Get(mon, code);
+                    if (v == null) throw new CtlException("The display does not report feature 0x" + code.ToString("X2") + ".");
+                    return VcpJson(code, v);
+                }
+                if (cmd == "set")
+                {
+                    int code = ParseCode(Arg(args, 3, "feature code"));
+                    uint value;
+                    if (!uint.TryParse(Arg(args, 4, "value"), out value) || value > 65535) throw new CtlException("The value must be a number from 0 to 65535.");
+                    Ddc.Set(mon, code, value);
+                    r["ok"] = true;
+                    r["code"] = code;
+                    r["value"] = value;
+                    return r;
+                }
+                throw new CtlException("Unknown command: ddc " + cmd);
+            }
+            finally { Ddc.Release(monitors); }
         }
 
         static Dictionary<string, object> ModeJson(ModeOption mo)
@@ -191,6 +302,8 @@ namespace DisplayDeck.Ctl
                 if (!File.Exists(PreviousFile())) throw new CtlException("There is no earlier layout to go back to.");
                 return ApplyFile(File.ReadAllText(PreviousFile()), false);
             }
+
+            if (group == "ddc") return DdcCommand(cmd, args);
 
             if (group == "audio" && cmd == "list")
             {

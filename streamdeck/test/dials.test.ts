@@ -69,7 +69,7 @@ test("dialFeedback fills the dial layout's items with colors for the tone", () =
 	assert.equal((dialFeedback({ title: "t", value: "v", hint: "h", tone: "warn" }) as any).hint.color, "#f59e0b");
 });
 
-test("infobarFeedback shows the profile and the audio device, coloured by state", () => {
+test("infobarFeedback shows the profile and the audio device, colored by state", () => {
 	const ok = infobarFeedback({ profile: "Desk", audio: "Main Out 1-2", active: true }) as Record<string, { value: string; color?: string }>;
 	assert.deepEqual([ok.profile!.value, ok.profile!.color, ok.audio!.value], ["Desk", "#22c55e", "Main Out 1-2"]);
 	const off = infobarFeedback({ profile: "DisplayDeck offline", audio: "", offline: true }) as Record<string, { value: string; color?: string }>;

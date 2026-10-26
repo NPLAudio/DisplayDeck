@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const { buildProfiles, scanFiles, writeLastApplied, currentStatus } = require('./lib/profiles');
 const editor = require('./lib/editor');
+const monitors = require('./lib/monitors');
 const system = require('./lib/system');
 const { createConfig } = require('./lib/settings');
 const { qrSvg } = require('./lib/qr');
@@ -43,6 +44,7 @@ const STATIC = {
   '/phone': ['phone.html', 'text/html'],
   '/settings': ['settings.html', 'text/html'],
   '/editor': ['editor.html', 'text/html'],
+  '/monitors': ['monitors.html', 'text/html'],
   '/app.css': ['app.css', 'text/css'],
   '/app.js': ['app.js', 'text/javascript'],
   '/favicon.svg': ['favicon.svg', 'image/svg+xml'],
@@ -217,6 +219,27 @@ async function handle(req, res) {
     if (!sameOrigin(req)) return send(res, 403, { error: 'Cross-origin request refused' });
     const layout = await system.undoLayout(cfg);
     return send(res, 200, { ok: true, warnings: layout.skipped || [] });
+  }
+
+  // Monitor controls over DDC/CI. Changing input, brightness or power is open to any signed-in device (switching
+  // input from a phone is the point); the raw feature commands are for this PC only.
+  const mon = /^\/api\/monitors(?:\/(\d+)\/(capabilities|set|vcp))?$/.exec(url.pathname);
+  if (mon) {
+    const fail = (e) => send(res, e.status || 400, { error: e.message });
+    try {
+      if (req.method === 'GET' && !mon[1]) return send(res, 200, await monitors.list(cfg));
+      if (req.method === 'GET' && mon[2] === 'capabilities') return send(res, 200, await monitors.capabilities(cfg, mon[1], url.searchParams.get('refresh') === '1'));
+      if (req.method === 'GET' && mon[2] === 'vcp') {
+        if (!local) return send(res, 403, { error: 'Reading raw features only works on the PC running DisplayDeck.' });
+        return send(res, 200, await monitors.get(cfg, mon[1], url.searchParams.get('code')));
+      }
+      if (req.method === 'POST' && mon[2] === 'set') {
+        if (!sameOrigin(req)) return send(res, 403, { error: 'Cross-origin request refused' });
+        const body = await readBody(req);
+        if (body.raw && !local) return send(res, 403, { error: 'Raw commands only work on the PC running DisplayDeck.' });
+        return send(res, 200, await monitors.set(cfg, mon[1], body.code, body.value, { raw: !!body.raw }));
+      }
+    } catch (e) { return fail(e); }
   }
 
   // The layout editor. It changes what is on screen and writes profile files, so only this PC may use it.

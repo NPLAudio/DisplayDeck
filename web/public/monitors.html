@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Monitors - DisplayDeck</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="DisplayDeck">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#09090b" media="(prefers-color-scheme: dark)">
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<main>
+  <div class="row" style="flex-wrap:wrap; margin-bottom:4px">
+    <button class="btn outline sm" type="button" id="refreshBtn">Refresh</button>
+    <span class="grow"></span>
+  </div>
+  <p id="status" class="status" role="status"></p>
+  <div id="monitors" class="stack"></div>
+
+  <details class="card section" style="margin-top:16px">
+    <summary><span>About these controls</span><span id="aboutChev"></span></summary>
+    <div class="section-body">
+      <ul class="plain muted" style="margin-top:12px">
+        <li>These controls talk to the monitor itself over its DisplayPort or HDMI cable (a standard called DDC/CI), the same as the buttons on its front panel.</li>
+        <li>Only displays that are on in Windows are listed. Most monitors support this; some have a <strong>DDC/CI</strong> switch in their on-screen menu that must be on.</li>
+        <li>TVs usually do not listen for these commands. They are controlled with HDMI-CEC instead, which a PC cannot send without extra hardware.</li>
+        <li>If you switch a display to an input this PC is not on, this PC can no longer reach it. Switch it back with the display's own buttons or from the other device.</li>
+        <li>Some monitors number their inputs differently from the standard, so a button may select a different port than its label. The monitor's own list of inputs is used when it provides one.</li>
+      </ul>
+    </div>
+  </details>
+</main>
+
+<style>
+  .mon-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .mon-name { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+  .group { margin-top: 18px; }
+  .group-label { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 0 0 8px; font-size: 14px; font-weight: 500; }
+  .group-value { font-weight: 400; color: hsl(var(--muted-foreground)); font-variant-numeric: tabular-nums; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chips .btn { min-height: 40px; }
+  .btn.on { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); border-color: transparent; }
+  .btn.outline.on { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
+  input[type="range"] { width: 100%; min-height: 28px; accent-color: hsl(var(--primary)); }
+  .hint { margin: 6px 0 0; font-size: 12px; color: hsl(var(--muted-foreground)); }
+  .raw-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  pre.caps { margin: 8px 0 0; padding: 10px; white-space: pre-wrap; word-break: break-all; font: 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: hsl(var(--muted)); border-radius: var(--radius); }
+  details.adv > summary { cursor: pointer; font-size: 13px; font-weight: 500; padding: 4px 0; }
+  .empty { padding: 28px 16px; text-align: center; }
+</style>
+
+<script src="/app.js"></script>
+<script>
+'use strict';
+const state = { monitors: [], caps: new Map(), capsError: new Map(), canEdit: false, busy: new Set() };
+
+// Values the monitor standard defines (MCCS). Monitors may add their own, shown as "Input 0x..".
+const INPUTS = { 0x01: 'VGA 1', 0x02: 'VGA 2', 0x03: 'DVI 1', 0x04: 'DVI 2', 0x05: 'Composite 1', 0x06: 'Composite 2', 0x07: 'S-Video 1', 0x08: 'S-Video 2',
+  0x09: 'Tuner 1', 0x0a: 'Tuner 2', 0x0b: 'Tuner 3', 0x0c: 'Component 1', 0x0d: 'Component 2', 0x0e: 'Component 3', 0x0f: 'DisplayPort 1', 0x10: 'DisplayPort 2', 0x11: 'HDMI 1', 0x12: 'HDMI 2' };
+const COMMON_INPUTS = [0x0f, 0x10, 0x11, 0x12];
+const PRESETS = { 0x01: 'sRGB', 0x02: 'Native', 0x03: '4000 K', 0x04: '5000 K', 0x05: '6500 K', 0x06: '7500 K', 0x07: '8200 K', 0x08: '9300 K', 0x09: '10000 K', 0x0a: '11500 K', 0x0b: 'User 1', 0x0c: 'User 2', 0x0d: 'User 3' };
+const POWER = { 1: 'On', 2: 'Standby', 3: 'Suspend', 4: 'Off', 5: 'Hard off' };
+const hex = (n) => '0x' + Number(n).toString(16).toUpperCase().padStart(2, '0');
+const inputLabel = (v) => INPUTS[v] || `Input ${hex(v)}`;
+
+const setStatus = (text, kind = '') => { $('status').className = 'status ' + kind; $('status').textContent = text; };
+
+// ---------- loading ----------
+async function load() {
+  setStatus('Asking your displays…');
+  $('refreshBtn').disabled = true;
+  try {
+    const r = await api('/api/monitors');
+    state.monitors = r.monitors;
+    setStatus('');
+    render();
+    for (const m of state.monitors) if (m.ddc) loadCaps(m.id);
+  } catch (e) {
+    setStatus(e.message, 'err');
+  } finally {
+    $('refreshBtn').disabled = false;
+  }
+}
+
+async function loadCaps(id, refresh) {
+  state.capsError.delete(id);
+  try { state.caps.set(id, await api(`/api/monitors/${id}/capabilities${refresh ? '?refresh=1' : ''}`)); }
+  catch (e) { state.capsError.set(id, e.message); }
+  const m = state.monitors.find((x) => x.id === id);
+  if (m) replaceCard(m);
+}
+
+// ---------- sending ----------
+async function send(m, code, value, done) {
+  state.busy.add(m.id);
+  setStatus('Sending…');
+  try {
+    await postJson(`/api/monitors/${m.id}/set`, { code, value });
+    setStatus(done || 'Done.', 'ok');
+    return true;
+  } catch (e) {
+    setStatus(e.message, 'err');
+    return false;
+  } finally {
+    state.busy.delete(m.id);
+  }
+}
+
+const KEYS = { input: 0x60, brightness: 0x10, contrast: 0x12, volume: 0x62, sharpness: 0x87, mute: 0x8d, power: 0xd6, preset: 0x14 };
+
+async function setControl(m, key, value, done) {
+  const ok = await send(m, KEYS[key], value, done);
+  if (ok) { m.controls[key] = { ...(m.controls[key] || {}), current: value }; }
+  replaceCard(m);
+}
+
+// ---------- cards ----------
+const slider = (m, key, label) => {
+  const c = m.controls[key];
+  if (!c) return null;
+  const val = el('span', { class: 'group-value' }, String(c.current));
+  const input = el('input', { type: 'range', min: '0', max: String(c.max || 100), value: String(c.current), 'aria-label': `${label} for ${m.name}` });
+  input.addEventListener('input', () => { val.textContent = input.value; });
+  input.addEventListener('change', () => setControl(m, key, Number(input.value), `${label} set to ${input.value}.`));
+  return el('div', { class: 'group' }, el('div', { class: 'group-label' }, el('span', {}, label), val), input);
+};
+
+function inputGroup(m) {
+  const cur = m.controls.input;
+  if (!cur) return null;
+  const caps = state.caps.get(m.id);
+  const fromCaps = caps && caps.inputs && caps.inputs.length;
+  let values = fromCaps ? [...caps.inputs] : [...COMMON_INPUTS];
+  if (!values.includes(cur.current)) values.push(cur.current);
+  values = [...new Set(values)].sort((a, b) => a - b);
+  const chips = values.map((v) => {
+    const on = v === cur.current;
+    return el('button', { class: 'btn outline sm' + (on ? ' on' : ''), type: 'button', 'aria-pressed': String(on), onclick: async () => {
+      if (on) return;
+      if (!confirm(`Switch ${m.name} to ${inputLabel(v)}?\n\nIf nothing is connected to that input, or it is another computer, this display goes blank until you switch it back with its own buttons.`)) return;
+      await setControl(m, 'input', v, `${m.name} switched to ${inputLabel(v)}.`);
+    } }, inputLabel(v));
+  });
+  const note = state.capsError.has(m.id)
+    ? 'Could not read this display’s own list of inputs, so common ones are shown.'
+    : caps ? (fromCaps ? '' : 'This display did not list its inputs, so common ones are shown.') : 'Reading this display’s list of inputs…';
+  return el('div', { class: 'group' },
+    el('div', { class: 'group-label' }, el('span', {}, 'Input'), el('span', { class: 'group-value' }, inputLabel(cur.current))),
+    el('div', { class: 'chips' }, chips), note ? el('p', { class: 'hint' }, note) : null);
+}
+
+function powerGroup(m) {
+  const cur = m.controls.power;
+  if (!cur) return null;
+  const caps = state.caps.get(m.id);
+  let values = caps && caps.power && caps.power.length ? [...caps.power] : [1, 4, 5];
+  if (!values.includes(1)) values.unshift(1);
+  values = [...new Set(values)].sort((a, b) => a - b);
+  const chips = values.map((v) => el('button', { class: 'btn outline sm' + (v === cur.current ? ' on' : ''), type: 'button', onclick: async () => {
+    if (v !== 1 && !confirm(`Turn ${m.name} ${POWER[v] ? POWER[v].toLowerCase() : 'off'}?\n\nIt may need its power button to wake up again.`)) return;
+    await setControl(m, 'power', v, `${m.name}: ${POWER[v] || 'power ' + v}.`);
+  } }, POWER[v] || `Power ${v}`));
+  return el('div', { class: 'group' }, el('div', { class: 'group-label' }, el('span', {}, 'Power'), el('span', { class: 'group-value' }, POWER[cur.current] || String(cur.current))),
+    el('div', { class: 'chips' }, chips));
+}
+
+function presetGroup(m) {
+  const cur = m.controls.preset;
+  const caps = state.caps.get(m.id);
+  if (!cur || !caps || !caps.presets.length) return null;
+  const values = [...new Set([...caps.presets, cur.current])].sort((a, b) => a - b);
+  const sel = el('select', { class: 'input', 'aria-label': `Color preset for ${m.name}` }, values.map((v) => el('option', { value: String(v) }, PRESETS[v] || `Preset ${hex(v)}`)));
+  sel.value = String(cur.current);
+  sel.addEventListener('change', () => setControl(m, 'preset', Number(sel.value), `Color preset changed.`));
+  return el('div', { class: 'group' }, el('div', { class: 'group-label' }, el('span', {}, 'Color preset')), sel);
+}
+
+function muteGroup(m) {
+  const cur = m.controls.mute;
+  if (!cur) return null;
+  const muted = cur.current === 1;
+  return el('div', { class: 'group' }, el('button', { class: 'btn outline sm' + (muted ? ' on' : ''), type: 'button', 'aria-pressed': String(muted),
+    onclick: () => setControl(m, 'mute', muted ? 2 : 1, muted ? 'Unmuted.' : 'Muted.') }, muted ? 'Unmute speakers' : 'Mute speakers'));
+}
+
+function advanced(m) {
+  const caps = state.caps.get(m.id);
+  const out = el('p', { class: 'hint', role: 'status' });
+  const code = el('input', { class: 'input', placeholder: 'Feature code, such as 0x60', autocomplete: 'off', spellcheck: 'false', 'aria-label': 'Feature code in hex' });
+  const value = el('input', { class: 'input', placeholder: 'Value', inputmode: 'numeric', autocomplete: 'off', 'aria-label': 'Value' });
+  const read = el('button', { class: 'btn outline sm', type: 'button', onclick: async () => {
+    try { const r = await api(`/api/monitors/${m.id}/vcp?code=${encodeURIComponent(code.value)}`); out.textContent = `${hex(r.code)}: value ${r.current}, maximum ${r.max}`; }
+    catch (e) { out.textContent = e.message; }
+  } }, 'Read');
+  const write = el('button', { class: 'btn outline sm', type: 'button', onclick: async () => {
+    if (!confirm(`Send ${code.value || 'this command'} = ${value.value} to ${m.name}?\n\nA wrong value can change the display’s settings or blank it.`)) return;
+    try { await postJson(`/api/monitors/${m.id}/set`, { code: code.value, value: Number(value.value), raw: true }); out.textContent = 'Sent.'; }
+    catch (e) { out.textContent = e.message; }
+  } }, 'Send');
+  return el('details', { class: 'adv group' },
+    el('summary', {}, 'Advanced'),
+    caps ? el('div', {}, el('p', { class: 'hint' }, `Features this display lists: ${caps.supported.join(' ')}`), el('pre', { class: 'caps' }, caps.raw)) : el('p', { class: 'hint' }, 'The capabilities list has not loaded.'),
+    el('div', { class: 'raw-grid', style: 'margin-top:12px' }, code, value),
+    el('div', { class: 'row', style: 'margin-top:8px' }, read, write),
+    out);
+}
+
+function card(m) {
+  const body = [];
+  if (!m.ddc) {
+    body.push(el('div', { class: 'alert warn', style: 'margin-top:12px' }, icon('alert'),
+      el('div', {}, m.backend === 'none'
+        ? 'Windows and your graphics card do not let DisplayDeck reach this display. TVs usually cannot be controlled this way.'
+        : 'This display did not answer. Check that DDC/CI is switched on in its on-screen menu. TVs usually do not support it.')));
+  } else {
+    body.push(inputGroup(m), slider(m, 'brightness', 'Brightness'), slider(m, 'contrast', 'Contrast'), slider(m, 'volume', 'Speaker volume'),
+      muteGroup(m), slider(m, 'sharpness', 'Sharpness'), presetGroup(m), powerGroup(m));
+    if (state.canEdit) body.push(advanced(m));
+  }
+  return el('section', { class: 'card' + (state.busy.has(m.id) ? ' busy' : ''), 'data-id': String(m.id) },
+    el('div', { class: 'card-content' }, el('div', { class: 'mon-head' }, icon('monitor'), el('span', { class: 'mon-name' }, m.name),
+      m.ddc ? el('span', { class: 'badge secondary' }, 'DDC/CI') : el('span', { class: 'badge outline' }, 'Not controllable')), body));
+}
+
+function replaceCard(m) {
+  const old = document.querySelector(`[data-id="${m.id}"]`);
+  if (!old) return render();
+  const open = old.querySelector('details.adv') && old.querySelector('details.adv').open;
+  const fresh = card(m);
+  if (open && fresh.querySelector('details.adv')) fresh.querySelector('details.adv').open = true;
+  old.replaceWith(fresh);
+}
+
+function render() {
+  const box = $('monitors');
+  if (!state.monitors.length) {
+    box.replaceChildren(el('div', { class: 'card' }, el('div', { class: 'empty muted' }, 'No displays that can be controlled were found. Only displays that are on in Windows are listed.')));
+    return;
+  }
+  box.replaceChildren(...state.monitors.map(card));
+}
+
+$('refreshBtn').addEventListener('click', () => { state.caps.clear(); load(); });
+$('aboutChev').append(icon('chevron', 'chev'));
+renderShell('monitors').then((s) => { state.canEdit = !!(s && s.canEdit); if (state.monitors.length) render(); });
+load();
+</script>
+</body>
+</html>

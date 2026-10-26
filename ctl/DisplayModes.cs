@@ -59,6 +59,17 @@ namespace DisplayDeck.Ctl
         [DllImport("user32.dll")]
         static extern int DisplayConfigGetDeviceInfo(ref TargetPreferredMode request);
 
+        /// <summary>The GDI name (such as \\.\DISPLAY1) of the screen a source is showing, or "" when unknown.</summary>
+        public static string GdiName(Luid adapter, uint sourceId)
+        {
+            SourceDeviceName n = new SourceDeviceName();
+            n.headerType = 1; // GET_SOURCE_NAME
+            n.headerSize = (uint)Marshal.SizeOf(typeof(SourceDeviceName));
+            n.headerAdapterId = adapter;
+            n.headerId = sourceId;
+            return DisplayConfigGetDeviceInfo(ref n) == 0 && n.viewGdiDeviceName != null ? n.viewGdiDeviceName : "";
+        }
+
         /// <summary>Resolutions and refresh rates the display on this source supports (empty when it cannot be read).</summary>
         public static List<ModeOption> ForSource(Luid adapter, uint sourceId)
         {

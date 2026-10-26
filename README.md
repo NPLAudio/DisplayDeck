@@ -25,6 +25,9 @@ It is free and made in spare time. If it saves you a few clicks, a [coffee](http
   refresh rate and rotation, and choose the primary display. Start from a saved profile ("Duplicate and edit"), from the
   screens as they are now, or from a blank canvas. **Try layout** applies it for real and goes back by itself unless you
   keep it.
+- **Monitor controls.** A **Monitors** tab talks to the monitors themselves over their DisplayPort or HDMI cable
+  (DDC/CI): switch a monitor's input (DisplayPort 1 or 2, HDMI 1 or 2), set brightness, contrast, speaker volume and
+  mute, pick a color preset, and turn it on or off. It works from your phone too.
 - **Undo.** Every layout change remembers the previous layout, so **Undo layout change** takes you back.
 - **Audio goes with the profile.** Give each profile a playback device and a spatial format (Off, Windows
   Sonic, Dolby Atmos, DTS, ...). Both switch together. The format list is read from the device itself, so
@@ -153,6 +156,27 @@ On an iPhone or iPad (iOS 16.4 or newer):
 4. Open **DisplayDeck** from your home screen. It runs full screen, like an app.
 
 On Android, open the link in Chrome, tap the menu and choose **Add to Home screen**. The Phone page in DisplayDeck shows the same steps.
+
+### 7. Switch a monitor's input and other controls
+
+The **Monitors** tab is the remote control for your screens: the same things as the buttons on a monitor's front panel, sent over its cable.
+
+![The Monitors tab with input buttons, sliders, a color preset and power buttons](docs/images/monitors.png)
+
+1. Open the **Monitors** tab. Each display that is on in Windows gets a card.
+2. Tap an **Input** button, such as **HDMI 1**, to switch that monitor to it. DisplayDeck asks you to confirm, because the screen goes blank here if nothing (or another computer) is on that input.
+3. Drag the **Brightness**, **Contrast** and **Speaker volume** sliders, press **Mute speakers**, or choose a **Color preset**.
+4. Use the **Power** buttons to turn a monitor on, or off.
+
+The buttons come from what each monitor says it supports, so you only see inputs and presets it really has. On this PC, **Advanced** shows the monitor's full feature list and lets you read or send any other DDC/CI command.
+
+Good to know:
+
+- Most monitors support this. Some have a **DDC/CI** switch in their on-screen menu that has to be on.
+- TVs usually do not listen for these commands. They use HDMI-CEC, which a PC can only send with extra hardware, so they show as **Not controllable**.
+- Once a monitor is switched to an input from another device, this PC can no longer reach it. Switch it back with its own buttons or from the other device.
+- Some monitors number their inputs differently from the standard, so use the monitor's own list (shown automatically) rather than guessing.
+- Windows refuses to hand out controls for some NVIDIA-driven displays, so DisplayDeck talks to those through the graphics card directly. This uses a file the NVIDIA driver already provides; nothing extra is installed.
 
 ## Stream Deck
 

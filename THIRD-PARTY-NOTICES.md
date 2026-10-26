@@ -26,3 +26,7 @@ device.
 
 `installer\build.ps1` fails if the package contains any executable other than DisplayDeck's own two and the
 Node.js runtime.
+
+## NVIDIA driver (not bundled)
+
+On computers with an NVIDIA graphics card, the Monitors tab can reach displays that Windows will not hand out controls for by calling `nvapi64.dll`, a library the NVIDIA driver installs in the Windows system folder. DisplayDeck does not include or redistribute it.

@@ -74,7 +74,7 @@ export function keyImage(face: KeyFace): string {
 	const caption = face.caption
 		? `<text x="72" y="134" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="${face.active ? accent : "#a1a1aa"}">${escapeXml(face.caption)}</text>`
 		: "";
-	// A 100x100 pictogram scaled to about 56px, centred above the label.
+	// A 100x100 pictogram scaled to about 56px, centered above the label.
 	const icon = face.icon ? `<g color="${fg}" transform="translate(44,14) scale(0.56)">${ICONS[face.icon]}</g>` : "";
 	const ring = face.active ? `<rect x="5" y="5" width="134" height="134" rx="16" fill="none" stroke="${accent}" stroke-width="6"/>` : "";
 	const bang = face.offline ? `<text x="124" y="30" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-weight="700" font-size="24" fill="#f59e0b">!</text>` : "";

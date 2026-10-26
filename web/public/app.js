@@ -86,7 +86,7 @@ async function renderShell(active) {
   const header = el('header', { class: 'app-header' });
   const nav = el('nav', { class: 'tabs', 'aria-label': 'Pages' });
   const tab = (href, label, id) => el('a', { class: 'tab', href, 'aria-current': id === active ? 'page' : null }, label);
-  nav.append(tab('/', 'Profiles', 'profiles'));
+  nav.append(tab('/', 'Profiles', 'profiles'), tab('/monitors', 'Monitors', 'monitors'));
   const themeBtn = el('button', { class: 'btn ghost icon sm', type: 'button', 'aria-label': 'Toggle light and dark theme', title: 'Toggle theme' });
   const paintTheme = () => themeBtn.replaceChildren(icon(isDark() ? 'sun' : 'moon'));
   themeBtn.addEventListener('click', () => { const next = isDark() ? 'light' : 'dark'; prefs.set('theme', next); applyTheme(next); paintTheme(); });
