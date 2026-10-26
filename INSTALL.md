@@ -169,6 +169,9 @@ iOS only picks up the icon when the app is added. Delete the icon, open the link
 **A monitor on the Monitors tab says "Not controllable".**
 Open the monitor's on-screen menu and make sure **DDC/CI** is turned on (it is sometimes under a general or system menu). Some monitors only allow it on certain inputs or when a power-saving mode is off. TVs usually do not support it at all.
 
+**The controls move but the monitor does not change.**
+Some monitors only act on DDC/CI commands on certain ports. Several Samsung ultrawides work over HDMI but ignore the commands on DisplayPort, while still reporting the new values back. Try the monitor on another port, and check its on-screen menu for **DDC/CI**.
+
 **Switching a monitor's input made the screen go blank.**
 The monitor is now showing an input that this PC is not on (or that has no signal). Use the monitor's own buttons to select the PC's input again.
 
