@@ -37,11 +37,16 @@ namespace DisplayDeck.Ctl
             {
                 TargetDeviceName n = DisplayNative.GetTargetName(pi.targetInfo.adapterId, pi.targetInfo.id);
                 MonitorInfo m = new MonitorInfo();
-                m.Valid = !string.IsNullOrEmpty(n.monitorDevicePath);
                 m.ManufactureId = n.edidManufactureId;
                 m.ProductCodeId = n.edidProductCodeId;
-                m.DevicePath = n.monitorDevicePath ?? "";
                 m.FriendlyName = n.monitorFriendlyDeviceName ?? "";
+                m.DevicePath = n.monitorDevicePath ?? "";
+                // Windows does not always return the device path. Rebuild an equivalent one from what it does
+                // return (the connector's target id and the EDID ids), so the saved file always identifies
+                // each monitor the same way.
+                if (m.DevicePath.Length == 0)
+                    m.DevicePath = ProfileFile.SynthesizeDevicePath(pi.targetInfo.id, n.edidManufactureId, n.edidProductCodeId);
+                m.Valid = true;
                 p.Monitors.Add(m);
             }
             if (p.Paths.Count == 0) throw new CtlException("No active displays were found.");
@@ -67,6 +72,15 @@ namespace DisplayDeck.Ctl
             {
                 uint? t = m.TargetId();
                 if (t.HasValue && t.Value == targetId) return m;
+            }
+            // Files whose monitor entries carry no target id (an empty device path) were written one entry per
+            // active path, in path order.
+            List<PathInfo> active = new List<PathInfo>();
+            foreach (PathInfo sp in saved.Paths) if ((sp.flags & DisplayNative.PATH_ACTIVE) != 0) active.Add(sp);
+            if (active.Count == saved.Monitors.Count)
+            {
+                for (int i = 0; i < active.Count; i++)
+                    if (active[i].targetInfo.id == targetId && saved.Monitors[i].TargetId() == null) return saved.Monitors[i];
             }
             return null;
         }

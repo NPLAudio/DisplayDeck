@@ -95,6 +95,15 @@ function readModes(root) {
   });
 }
 
+// EDID manufacturer id (three 5-bit letters, stored byte-swapped) + product code, e.g. 26934/16296 -> "MSI3FA8".
+function edidHwId(mfg, prod) {
+  if (!Number.isFinite(mfg) || !Number.isFinite(prod) || (mfg === 0 && prod === 0)) return null;
+  const w = ((mfg & 0xff) << 8) | ((mfg >> 8) & 0xff);
+  const letters = [(w >> 10) & 0x1f, (w >> 5) & 0x1f, w & 0x1f].map((n) => String.fromCharCode(64 + n));
+  if (!letters.every((c) => /[A-Z]/.test(c))) return null;
+  return letters.join('') + (prod & 0xffff).toString(16).toUpperCase().padStart(4, '0');
+}
+
 function readMonitors(root) {
   const out = [];
   for (const mi of kids(dig(root, 'additionalInfo'), 'MonitorAdditionalInfo')) {
@@ -102,9 +111,11 @@ function readMonitors(root) {
     const devicePath = decodeB64Text(str(kid(mi, 'monitorDevicePath')));
     const uid = /UID(\d+)/i.exec(devicePath);
     const hw = /DISPLAY#([A-Za-z0-9]+)#/i.exec(devicePath);
+    const mfg = Number(str(kid(mi, 'manufactureId'))), prod = Number(str(kid(mi, 'productCodeId')));
     out.push({
       targetId: uid ? Number(uid[1]) : null,
-      hwId: hw ? hw[1].toUpperCase() : null,
+      // Windows sometimes omits the device path; the EDID ids still give the same hardware id.
+      hwId: hw ? hw[1].toUpperCase() : edidHwId(mfg, prod),
       friendlyName: cleanName(decodeB64Text(str(kid(mi, 'monitorFriendlyDevice')))),
       devicePath,
     });
@@ -134,7 +145,11 @@ function parseProfile(xmlText) {
     const inUse = /InUse/.test(str(kid(tgt, 'statusFlags')));
     const active = (flags === null ? inUse : (flags & 1) === 1) && !!srcMode;
     const refresh = ratio(kid(tgt, 'refreshRate')) || (tgtMode && tgtMode.vSync) || null;
-    const mon = monitors.find((m) => m.targetId !== null && m.targetId === targetId) || null;
+    let mon = monitors.find((m) => m.targetId !== null && m.targetId === targetId) || null;
+    // Entries without a target id (an empty device path) were written one per path, in path order.
+    if (!mon && monitors.length === paths.length && monitors[displays.length] && monitors[displays.length].targetId === null) {
+      mon = monitors[displays.length];
+    }
 
     displays.push({
       active,
@@ -185,4 +200,4 @@ function layoutSignature(parsed) {
   return keys.includes(null) ? null : keys.sort().join(';');
 }
 
-module.exports = { parseXml, parseProfile, decodeB64Text, displayKey, layoutSignature };
+module.exports = { parseXml, parseProfile, decodeB64Text, displayKey, layoutSignature, edidHwId };

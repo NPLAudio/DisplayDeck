@@ -82,6 +82,19 @@ namespace DisplayDeck.Ctl
             Check(modes[0].infoType == DisplayNative.MODE_SOURCE && modes[0].sourceMode.width == 5120 && modes[1].targetMode.activeCx == 5120, "carries saved resolution");
             Check(paths[0].targetInfo.refreshRate.Numerator == 144, "carries saved refresh rate");
 
+            // monitor identity without a device path (Windows sometimes omits it): EDID ids -> hardware id
+            Check(ProfileFile.EdidHwId(26934, 16296) == "MSI3FA8", "EDID ids give MSI3FA8");
+            Check(ProfileFile.EdidHwId(11596, 3996) == "SAM0F9C", "EDID ids give SAM0F9C");
+            string synth = ProfileFile.SynthesizeDevicePath(4353, 26934, 16296);
+            MonitorInfo sm2 = new MonitorInfo(); sm2.DevicePath = synth;
+            Check(sm2.TargetId() == 4353 && synth.Contains("DISPLAY#MSI3FA8#"), "synthesized path carries the target id");
+            // an older file with empty device paths: entries are matched to paths by order
+            Profile bare = ProfileFile.Parse(Sample2().Replace(ProfileFile.Encode("\\\\?\\DISPLAY#MSI3FA8#5&00000000&1&UID4353#{e6f07b5f-ee97-4a90-b076-33f57bf4eaa7}"), ""));
+            Check(bare.Monitors.Count == 1 && bare.Monitors[0].TargetId() == null, "a file with an empty device path has no target id");
+            PathInfo[] cur1 = new PathInfo[1]; cur1[0] = bare.Paths[0];
+            List<string> sk1 = new List<string>();
+            Check(DisplayOps.Match(bare, cur1, sk1).Count == 1, "still matches the display by connector id");
+
             // nothing connected -> no matches
             List<string> none = new List<string>();
             Check(DisplayOps.Match(p, new PathInfo[0], none).Count == 0 && none.Count == 2, "no matches when nothing is connected");

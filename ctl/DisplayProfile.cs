@@ -55,6 +55,22 @@ namespace DisplayDeck.Ctl
 
     public static class ProfileFile
     {
+        /// <summary>EDID manufacturer id (three 5-bit letters, stored byte-swapped) plus product code, e.g. "MSI3FA8".</summary>
+        public static string EdidHwId(ushort manufacturer, ushort product)
+        {
+            int w = ((manufacturer & 0xFF) << 8) | (manufacturer >> 8);
+            char a = (char)('@' + ((w >> 10) & 0x1F)), b = (char)('@' + ((w >> 5) & 0x1F)), c = (char)('@' + (w & 0x1F));
+            if (!char.IsLetter(a) || !char.IsLetter(b) || !char.IsLetter(c)) return "UNK" + product.ToString("X4");
+            return new string(new char[] { a, b, c }) + product.ToString("X4");
+        }
+
+        /// <summary>A device path in the usual form, built from the target id and EDID ids.</summary>
+        public static string SynthesizeDevicePath(uint targetId, ushort manufacturer, ushort product)
+        {
+            return "\\\\?\\DISPLAY#" + EdidHwId(manufacturer, product) + "#5&0&0&UID" + targetId.ToString(CultureInfo.InvariantCulture)
+                + "#{e6f07b5f-ee97-4a90-b076-33f57bf4eaa7}";
+        }
+
         static readonly XNamespace Xsi = "http://www.w3.org/2001/XMLSchema-instance";
         static readonly XNamespace Xsd = "http://www.w3.org/2001/XMLSchema";
 

@@ -101,3 +101,26 @@ test('display identity survives the TV reporting a different hardware id', () =>
   assert.equal(displayKey(a), displayKey(b));
   assert.notEqual(displayKey(a), displayKey({ ...a, targetId: 4356 }));
 });
+
+test('EDID ids give the same hardware id the device path would', () => {
+  const { edidHwId } = require('../lib/parser');
+  assert.equal(edidHwId(26934, 16296), 'MSI3FA8');
+  assert.equal(edidHwId(11596, 3996), 'SAM0F9C');
+  assert.equal(edidHwId(55629, 1030), 'SNY0406');
+  assert.equal(edidHwId(0, 0), null);
+});
+
+test('a profile whose monitor entries have no device path still identifies its displays', () => {
+  const x = fx('living-room.xml').replace(/<monitorDevicePath>[^<]*<\/monitorDevicePath>/, '<monitorDevicePath />');
+  const p = parseProfile(x);
+  assert.deepEqual(p.warnings, []);
+  assert.equal(p.displays[0].hwId, 'SNY0406');
+  assert.equal(p.displays[0].xmlName, 'SONY TV *30');
+});
+
+test('identity-less entries are matched to paths in order when there are several displays', () => {
+  const x = fx('desk.xml').replace(/<monitorDevicePath>[^<]*<\/monitorDevicePath>/g, '<monitorDevicePath />');
+  const p = parseProfile(x);
+  assert.deepEqual(p.warnings, []);
+  assert.deepEqual(p.displays.map((d) => d.hwId), ['MSI3FA8', 'SAM0F9C', 'SNY0406']);
+});
