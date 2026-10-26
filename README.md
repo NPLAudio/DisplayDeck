@@ -32,7 +32,7 @@ It is free and made in spare time. If it saves you a few clicks, a [coffee](http
 - **Tray icon.** Left-click opens the page. Right-click lists your profiles so you can apply one without
   opening a browser. It can start with Windows.
 - **From your phone.** Turn on **Allow other devices** in the tray menu, scan the QR code, and you have the
-  same page on your phone, protected by a private access key and limited to your home network.
+  same page on your phone, protected by a private access key and limited to your home network. Add it to your iPhone or Android home screen and it opens like an app, with its own icon.
 - **Friendly names.** Monitors are named from the profile, falling back to the Windows EDID name or a short
   ID, and you can override any name.
 - **Stream Deck.** An optional plugin puts profile, next-profile, undo and audio-output keys on your Stream Deck.
@@ -140,6 +140,19 @@ You don't have to arrange your monitors in Windows first. The layout editor does
 ![Trying a layout: a banner counts down and offers Keep or Go back now](docs/images/editor-try.png)
 
 A display that is switched off right now can't list its exact modes, so the editor offers the sizes your saved profiles used and some common ones. **Check** and **Try layout** confirm that Windows accepts your choice. The editor only works from the PC itself, not from a phone.
+
+### 6. Put it on your phone's home screen
+
+<img src="docs/images/home-screen-icon.png" alt="The DisplayDeck home screen icon" width="90" align="right">
+
+On an iPhone or iPad (iOS 16.4 or newer):
+
+1. Turn on **Allow other devices (phone)** in the tray menu, then choose **Show phone QR code**.
+2. Scan the code with the **Camera** app and open the link in **Safari**.
+3. Tap the **Share** button, scroll down and tap **Add to Home Screen**, then **Add**.
+4. Open **DisplayDeck** from your home screen. It runs full screen, like an app.
+
+On Android, open the link in Chrome, tap the menu and choose **Add to Home screen**. The Phone page in DisplayDeck shows the same steps.
 
 ## Stream Deck
 

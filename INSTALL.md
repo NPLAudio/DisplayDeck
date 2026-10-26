@@ -65,6 +65,23 @@ app installed). Windows may ask for administrator permission once when a spatial
 3. Scan it with your phone's camera while the phone is on the same Wi-Fi or network as the PC. The phone
    opens DisplayDeck and remembers you.
 
+### Put it on your iPhone or iPad home screen
+
+This makes DisplayDeck open like an app: full screen, with its own icon. You need iOS or iPadOS 16.4 or newer.
+
+1. On your iPhone, scan the QR code with the **Camera** app and open the link in **Safari**.
+2. Tap the **Share** button (the square with an arrow pointing up), at the bottom of the screen on iPhone.
+3. Scroll down the list and tap **Add to Home Screen**.
+4. Leave the name as **DisplayDeck** (or change it) and tap **Add**.
+5. Close Safari and tap the new **DisplayDeck** icon on your home screen.
+
+The icon is the DisplayDeck mark: a dark square with an outlined screen and a green one.
+
+### Put it on your Android home screen
+
+1. Scan the QR code and open the link in **Chrome**.
+2. Tap the **⋮** menu, then **Add to Home screen** (or **Install app**).
+
 Good to know:
 
 - The link contains a private access key. Treat it like a password and do not share the QR code.
@@ -138,6 +155,12 @@ from it with **Edit audio**. Devices that are unplugged or disabled do not appea
 **The folder window did not appear.**
 It should open in front of your browser. If it seems to do nothing, look for a new window in the taskbar, and
 check that you clicked from the PC itself (not from a phone).
+
+**The home screen icon says "Access key required".**
+The app was added from a page without the access key. Delete the icon, scan the QR code on the Phone page again, and repeat the steps above. If you turned phone access off and on again, the key changes, so any older icon needs the same fix.
+
+**The home screen icon is blank or shows a letter instead of the DisplayDeck mark.**
+iOS only picks up the icon when the app is added. Delete the icon, open the link in Safari again and re-add it. Add it from Safari: other iOS browsers may not offer **Add to Home Screen** on older iOS versions.
 
 **There is no "Install Stream Deck plugin..." item.**
 It only appears when Stream Deck is installed on this PC and the installer included the plugin. Installers

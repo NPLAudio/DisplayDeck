@@ -211,3 +211,6 @@ details.section > .section-body { padding: 0 16px 16px; border-top: 1px solid hs
 
 .qr-box { width: min(72vw, 280px); margin: 0 auto; padding: 12px; background: #fff; border-radius: calc(var(--radius) + 2px); border: 1px solid hsl(var(--border)); }
 .qr-box svg { display: block; width: 100%; height: auto; }
+
+ol.steps { margin: 0; padding-left: 20px; }
+ol.steps li { padding: 3px 0; }

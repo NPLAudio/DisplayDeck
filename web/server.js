@@ -46,14 +46,18 @@ const STATIC = {
   '/app.css': ['app.css', 'text/css'],
   '/app.js': ['app.js', 'text/javascript'],
   '/favicon.svg': ['favicon.svg', 'image/svg+xml'],
+  // Home-screen icons for phones (opaque squares; the phone rounds the corners).
+  '/apple-touch-icon.png': ['apple-touch-icon.png', 'image/png'],
+  '/icon-192.png': ['icon-192.png', 'image/png'],
+  '/icon-512.png': ['icon-512.png', 'image/png'],
 };
 
 let version = '';
 try { version = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8').replace(/^﻿/, '')).version || ''; } catch (_) { /* optional */ }
 
 const send = (res, code, body, type = 'application/json', cache = 'no-store') => {
-  res.writeHead(code, { 'Content-Type': type + '; charset=utf-8', 'Cache-Control': cache });
-  res.end(typeof body === 'string' ? body : JSON.stringify(body));
+  res.writeHead(code, { 'Content-Type': type.startsWith('image/png') ? type : type + '; charset=utf-8', 'Cache-Control': cache });
+  res.end(typeof body === 'string' || Buffer.isBuffer(body) ? body : JSON.stringify(body));
 };
 
 const sameOrigin = (req) => !req.headers.origin || new URL(req.headers.origin).host === req.headers.host;
@@ -95,7 +99,27 @@ async function handle(req, res) {
 
   if (req.method === 'GET' && Object.prototype.hasOwnProperty.call(STATIC, url.pathname)) {
     const [file, type] = STATIC[url.pathname];
-    return send(res, 200, fs.readFileSync(path.join(__dirname, 'public', file), 'utf8'), type, type === 'text/html' ? 'no-store' : 'no-cache');
+    const raw = fs.readFileSync(path.join(__dirname, 'public', file), type === 'image/png' ? undefined : 'utf8');
+    return send(res, 200, raw, type, type === 'text/html' ? 'no-store' : 'no-cache');
+  }
+  // Lets a phone install the page as an app. Past the access check, so a phone that is allowed in gets a start
+  // address that signs it in again when the app is opened from the home screen (the app has its own cookies).
+  if (req.method === 'GET' && url.pathname === '/manifest.webmanifest') {
+    const manifest = {
+      name: 'DisplayDeck',
+      short_name: 'DisplayDeck',
+      description: 'Switch display layouts and audio devices.',
+      start_url: local || accessKey.length < 16 ? '/' : `/?key=${accessKey}`,
+      scope: '/',
+      display: 'standalone',
+      background_color: '#09090b',
+      theme_color: '#09090b',
+      icons: [
+        { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+        { src: '/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+      ],
+    };
+    return send(res, 200, JSON.stringify(manifest), 'application/manifest+json', 'no-store');
   }
   if (req.method === 'GET' && url.pathname === '/api/profiles') return send(res, 200, await buildProfiles(cfg));
   // Light status for hardware decks and other pollers: profile names, current, last applied.
