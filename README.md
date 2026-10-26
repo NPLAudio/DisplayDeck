@@ -40,6 +40,7 @@ It is free and made in spare time. If it saves you a few clicks, a [coffee](http
   ID, and you can override any name.
 - **Stream Deck.** An optional plugin puts profile, next-profile, undo and audio-output keys on your Stream Deck.
   The profile and audio keys light up when they are the active one. See [Stream Deck](#stream-deck).
+- **HomeKit.** A [Homebridge plugin](https://github.com/NPLAudio/homebridge-displaydeck) gives every profile its own HomeKit switch. Install and setup steps are in the [plugin's README](https://github.com/NPLAudio/homebridge-displaydeck#install). See [HomeKit (Homebridge)](#homekit-homebridge).
 - **Three pages.** Profiles, Phone (the QR code) and Settings each have their own page, reachable from the
   tabs at the top or from the tray menu.
 - **Light and dark.** The interface uses [shadcn/ui](https://ui.shadcn.com) design tokens (zinc theme),
@@ -182,7 +183,7 @@ Good to know:
 
 ## HomeKit (Homebridge)
 
-The [homebridge-displaydeck](https://github.com/NPLAudio/homebridge-displaydeck) plugin adds one HomeKit switch for every saved profile, so "Hey Siri, turn on Living Room" or a Home app automation can switch your screens and sound. The switches appear and disappear on their own as you add and delete profiles, and the active profile's switch reads on. It needs **Allow other devices (phone)** turned on, and the access key from the Phone page link. Setup steps are in the plugin's README.
+The [homebridge-displaydeck](https://github.com/NPLAudio/homebridge-displaydeck) plugin adds one HomeKit switch for every saved profile, so "Hey Siri, turn on Living Room" or a Home app automation can switch your screens and sound. The switches appear and disappear on their own as you add and delete profiles, and the active profile's switch reads on. It needs **Allow other devices (phone)** turned on, and the access key from the Phone page link. **Install and setup instructions: [NPLAudio/homebridge-displaydeck](https://github.com/NPLAudio/homebridge-displaydeck#install).**
 
 ## Stream Deck
 

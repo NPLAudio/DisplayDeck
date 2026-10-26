@@ -118,7 +118,7 @@ If you run [Homebridge](https://homebridge.io) on a computer or device on your n
 
 1. Turn on **Allow other devices (phone)** in the tray menu (see step 4).
 2. On the **Phone** page, note the PC's IP address and the access key (the long string after `?key=` in the link).
-3. Install the plugin in Homebridge and enter the address and key. The plugin's README has the details.
+3. Install the plugin in Homebridge and enter the address and key. The install and setup steps are in the [plugin's README](https://github.com/NPLAudio/homebridge-displaydeck#install).
 
 The PC must be on for the switches to work. When it is off they show "No Response" in the Home app.
 
