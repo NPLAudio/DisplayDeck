@@ -1,13 +1,13 @@
 # DisplayDeck
 
-<a href="https://buymeacoffee.com/notpunny"><img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=for-the-badge&logo=buymeacoffee&logoColor=black" alt="Buy me a coffee" height="36"></a>
-
 **Switch your whole desk setup with one tap.** DisplayDeck saves your monitor layouts and audio devices
 as named profiles ("Desk", "Living Room", "Den TV") and puts them behind a tray icon and a phone-friendly
 web page. One click on the PC, or one tap on your phone, and the screens, the sound output and the
 spatial format all change together.
 
 It is a single self-contained app: nothing else needs to be downloaded or installed.
+
+It is free and made in spare time. If it saves you a few clicks, a [coffee](https://buymeacoffee.com/notpunny) is always appreciated, and never expected.
 
 ## What it does
 
