@@ -19,6 +19,9 @@ const A = {
 	next: `${UUID}.next`,
 	undo: `${UUID}.undo`,
 	audio: `${UUID}.audio`,
+	profileDial: `${UUID}.profile-dial`,
+	audioDial: `${UUID}.audio-dial`,
+	status: `${UUID}.status`,
 };
 
 type Msg = { event: string; context?: string; payload?: any; [k: string]: unknown };
@@ -115,12 +118,21 @@ async function startHost(stubUrl: string) {
 	return {
 		received,
 		output: () => output,
-		appear(action: string, context: string, s: object = {}) {
+		appear(action: string, context: string, s: object = {}, controller: "Keypad" | "Encoder" | "Neo" = "Keypad") {
 			settings.set(context, s);
-			send({ event: "willAppear", ...common(action, context), payload: { controller: "Keypad", coordinates: { column: 0, row: 0 }, isInMultiAction: false, settings: s, state: 0 } });
+			send({ event: "willAppear", ...common(action, context), payload: { controller, coordinates: { column: 0, row: 0 }, isInMultiAction: false, settings: s, state: 0 } });
 		},
 		keyDown(action: string, context: string, s: object = {}) {
 			send({ event: "keyDown", ...common(action, context), payload: { controller: "Keypad", coordinates: { column: 0, row: 0 }, isInMultiAction: false, settings: s, state: 0 } });
+		},
+		rotate(action: string, context: string, ticks: number) {
+			send({ event: "dialRotate", ...common(action, context), payload: { controller: "Encoder", coordinates: { column: 0, row: 0 }, pressed: false, settings: settings.get(context) ?? {}, ticks } });
+		},
+		dialDown(action: string, context: string) {
+			send({ event: "dialDown", ...common(action, context), payload: { controller: "Encoder", coordinates: { column: 0, row: 0 }, settings: settings.get(context) ?? {} } });
+		},
+		touchTap(action: string, context: string) {
+			send({ event: "touchTap", ...common(action, context), payload: { controller: "Encoder", coordinates: { column: 0, row: 0 }, hold: false, settings: settings.get(context) ?? {}, tapPos: [100, 50] } });
 		},
 		inspectorOpens(action: string, context: string) { send({ event: "propertyInspectorDidAppear", ...common(action, context) }); },
 		fromInspector(action: string, context: string, payload: object) { send({ event: "sendToPlugin", ...common(action, context), payload }); },
@@ -310,6 +322,93 @@ test("keys repaint on their own when the active profile changes elsewhere", asyn
 		assert.ok(!h.received.some((m) => imageFor("k1")(m) && decodeImage(m.payload.image).includes("#22c55e")));
 		stub.state.current = "Living Room"; // someone applied it from the web page
 		await h.waitFor((m) => imageFor("k1")(m) && decodeImage(m.payload.image).includes("#22c55e"), 9000);
+	});
+});
+
+// ---------- dials and the info bar ----------
+
+const feedbackFor = (ctx: string, pred: (p: any) => boolean = () => true) => (m: Msg) => m.event === "setFeedback" && m.context === ctx && pred(m.payload);
+
+test("the profile dial shows the active profile, turning previews, pressing applies", async () => {
+	await withHarness(async (h, stub) => {
+		h.appear(A.profileDial, "d1", {}, "Encoder");
+		await h.waitFor(feedbackFor("d1", (p) => p.value?.value === "Desk" && p.value?.color === "#22c55e"));
+		h.rotate(A.profileDial, "d1", 1);
+		await h.waitFor(feedbackFor("d1", (p) => p.value?.value === "Living Room" && p.hint?.value === "Press to apply"));
+		assert.ok(!stub.calls.some((c) => c.path.startsWith("/api/apply/")), "turning alone applies nothing");
+		h.dialDown(A.profileDial, "d1");
+		await h.waitFor((m) => feedbackFor("d1", (p) => p.value?.value === "Living Room" && p.value?.color === "#22c55e")(m));
+		assert.ok(stub.calls.some((c) => c.method === "POST" && c.path === "/api/apply/Living Room"));
+	});
+});
+
+test("turning the profile dial the other way wraps, and a touch tap also applies", async () => {
+	await withHarness(async (h, stub) => {
+		h.appear(A.profileDial, "d1", {}, "Encoder");
+		await h.waitFor(feedbackFor("d1", (p) => p.value?.value === "Desk"));
+		h.rotate(A.profileDial, "d1", -2); // Desk -> Den TV -> Living Room
+		await h.waitFor(feedbackFor("d1", (p) => p.value?.value === "Living Room"));
+		h.touchTap(A.profileDial, "d1");
+		await h.waitFor(() => stub.calls.some((c) => c.path === "/api/apply/Living Room"));
+	});
+});
+
+test("pressing the profile dial with nothing chosen does nothing", async () => {
+	await withHarness(async (h, stub) => {
+		h.appear(A.profileDial, "d1", {}, "Encoder");
+		await h.waitFor(feedbackFor("d1", (p) => p.value?.value === "Desk"));
+		h.dialDown(A.profileDial, "d1");
+		await sleep(400);
+		assert.ok(!stub.calls.some((c) => c.path.startsWith("/api/apply/")));
+	});
+});
+
+test("the audio dial browses devices and makes the chosen one the default, leaving spatial alone", async () => {
+	await withHarness(async (h, stub) => {
+		h.appear(A.audioDial, "d2", {}, "Encoder");
+		await h.waitFor(feedbackFor("d2", (p) => p.value?.value === "Main Out 1-2" && p.value?.color === "#22c55e"));
+		h.rotate(A.audioDial, "d2", 1);
+		await h.waitFor(feedbackFor("d2", (p) => p.value?.value === "LG TV" && p.hint?.value === "Press to make default"));
+		h.dialDown(A.audioDial, "d2");
+		await h.waitFor(() => stub.calls.some((c) => c.path === "/api/audio/apply"));
+		assert.deepEqual(stub.calls.find((c) => c.path === "/api/audio/apply")!.body, { device: stub.state.devices[1]!.id });
+	});
+});
+
+test("the undo dial undoes on press", async () => {
+	await withHarness(async (h, stub) => {
+		h.appear(A.undo, "d3", {}, "Encoder");
+		await h.waitFor(feedbackFor("d3", (p) => p.title?.value === "UNDO"));
+		h.dialDown(A.undo, "d3");
+		await h.waitFor(() => stub.calls.some((c) => c.path === "/api/undo-layout"));
+	});
+});
+
+test("the status action fills the Neo info bar with the profile and the default device", async () => {
+	await withHarness(async (h) => {
+		h.appear(A.status, "s1", {}, "Neo");
+		await h.waitFor((m) => m.event === "setFeedbackLayout" && m.context === "s1" && m.payload?.layout === "layouts/infobar.json");
+		await h.waitFor(feedbackFor("s1", (p) => p.profile?.value === "Desk" && p.audio?.value === "Main Out 1-2"));
+	});
+});
+
+test("the status action on a dial shows the same, and goes amber when DisplayDeck is offline", async () => {
+	await withHarness(async (h) => {
+		h.appear(A.status, "s2", {}, "Encoder");
+		await h.waitFor(feedbackFor("s2", (p) => p.value?.value === "Desk" && p.hint?.value === "Main Out 1-2"));
+	});
+	await withHarness(async (h) => {
+		h.appear(A.status, "s3", {}, "Neo");
+		await h.waitFor(feedbackFor("s3", (p) => p.profile?.value === "DisplayDeck offline" && p.profile?.color === "#f59e0b"));
+	}, { startStopped: true });
+});
+
+test("dials repaint on their own when the active profile changes elsewhere", async () => {
+	await withHarness(async (h, stub) => {
+		h.appear(A.profileDial, "d1", {}, "Encoder");
+		await h.waitFor(feedbackFor("d1", (p) => p.value?.value === "Desk"));
+		stub.state.current = "Den TV";
+		await h.waitFor(feedbackFor("d1", (p) => p.value?.value === "Den TV" && p.value?.color === "#22c55e"), 9000);
 	});
 });
 

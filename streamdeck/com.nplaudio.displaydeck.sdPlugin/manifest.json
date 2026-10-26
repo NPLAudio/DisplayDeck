@@ -41,14 +41,23 @@
 			"Icon": "imgs/actions/undo/icon",
 			"Tooltip": "Goes back to the display layout from before the last change.",
 			"Controllers": [
-				"Keypad"
+				"Keypad",
+				"Encoder"
 			],
 			"States": [
 				{
 					"Image": "imgs/actions/undo/key",
 					"ShowTitle": false
 				}
-			]
+			],
+			"Encoder": {
+				"layout": "layouts/dial.json",
+				"Icon": "imgs/actions/undo/encoder-icon",
+				"TriggerDescription": {
+					"Push": "Undo the last layout change",
+					"Touch": "Undo the last layout change"
+				}
+			}
 		},
 		{
 			"Name": "Audio output",
@@ -65,6 +74,78 @@
 					"ShowTitle": false
 				}
 			]
+		},
+		{
+			"Name": "Profile dial",
+			"UUID": "com.nplaudio.displaydeck.profile-dial",
+			"Icon": "imgs/actions/profile/icon",
+			"Tooltip": "Turn to browse your saved profiles; press or tap to apply the one shown. Green while it is the active profile. (Stream Deck +)",
+			"Controllers": [
+				"Encoder"
+			],
+			"Encoder": {
+				"layout": "layouts/dial.json",
+				"Icon": "imgs/actions/profile/encoder-icon",
+				"TriggerDescription": {
+					"Rotate": "Choose a profile",
+					"Push": "Apply the shown profile",
+					"Touch": "Apply the shown profile"
+				}
+			},
+			"States": [
+				{
+					"Image": "imgs/actions/profile/key",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"Name": "Audio dial",
+			"UUID": "com.nplaudio.displaydeck.audio-dial",
+			"Icon": "imgs/actions/audio/icon",
+			"Tooltip": "Turn to browse your playback devices; press or tap to make the one shown the default. Green while it is the default. (Stream Deck +)",
+			"Controllers": [
+				"Encoder"
+			],
+			"Encoder": {
+				"layout": "layouts/dial.json",
+				"Icon": "imgs/actions/audio/encoder-icon",
+				"TriggerDescription": {
+					"Rotate": "Choose a device",
+					"Push": "Make the shown device the default",
+					"Touch": "Make the shown device the default"
+				}
+			},
+			"States": [
+				{
+					"Image": "imgs/actions/audio/key",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"Name": "Status",
+			"UUID": "com.nplaudio.displaydeck.status",
+			"Icon": "imgs/actions/status/icon",
+			"Tooltip": "Shows the current profile and the default playback device. For the Stream Deck Neo info bar, or a Stream Deck + dial.",
+			"Controllers": [
+				"Neo",
+				"Encoder"
+			],
+			"Encoder": {
+				"layout": "layouts/dial.json",
+				"Icon": "imgs/actions/status/encoder-icon",
+				"TriggerDescription": {
+					"Push": "Refresh",
+					"Touch": "Refresh"
+				}
+			},
+			"States": [
+				{
+					"Image": "imgs/actions/status/key",
+					"ShowTitle": false
+				}
+			]
 		}
 	],
 	"Category": "DisplayDeck",
@@ -74,7 +155,7 @@
 	"Icon": "imgs/plugin/marketplace",
 	"SDKVersion": 3,
 	"Software": {
-		"MinimumVersion": "7.1"
+		"MinimumVersion": "7.6"
 	},
 	"OS": [
 		{

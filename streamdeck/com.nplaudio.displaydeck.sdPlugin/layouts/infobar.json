@@ -1,0 +1,10 @@
+{
+	"$schema": "https://schemas.elgato.com/streamdeck/plugins/layout.json",
+	"id": "com.nplaudio.displaydeck.infobar",
+	"controller": "Neo",
+	"items": [
+		{ "key": "icon", "type": "pixmap", "rect": [8, 9, 32, 32] },
+		{ "key": "profile", "type": "text", "rect": [48, 3, 178, 26], "font": { "size": 20, "weight": 700 }, "alignment": "left", "text-overflow": "ellipsis", "color": "#fafafa" },
+		{ "key": "audio", "type": "text", "rect": [48, 29, 178, 18], "font": { "size": 14, "weight": 400 }, "alignment": "left", "text-overflow": "ellipsis", "color": "#a1a1aa" }
+	]
+}

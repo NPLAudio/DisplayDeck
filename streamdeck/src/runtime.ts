@@ -18,10 +18,10 @@ export const log = streamDeck.logger.createScope("DisplayDeck");
  * Runs a key press: shows the green tick on success, and the yellow alert on failure (with the reason in the log).
  * `onDone` runs afterwards either way, so keys can refresh.
  */
-export async function press(action: { showOk(): Promise<void>; showAlert(): Promise<void> }, work: () => Promise<unknown>): Promise<void> {
+export async function press(action: { showOk?: () => Promise<void>; showAlert(): Promise<void> }, work: () => Promise<unknown>): Promise<void> {
 	try {
 		await work();
-		await action.showOk();
+		await action.showOk?.(); // dials have no tick; they show their own message
 	} catch (error) {
 		log.error(`Key press failed: ${error instanceof Error ? error.message : String(error)}`);
 		await action.showAlert();

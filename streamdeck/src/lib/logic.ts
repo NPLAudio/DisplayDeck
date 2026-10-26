@@ -21,6 +21,18 @@ export function isActiveProfile(status: StatusLike, name: string | undefined): b
 	return status.lastApplied === name;
 }
 
+/**
+ * Moves a dial selection through a list. Starts from `pending`, then the active item, then the start of the list;
+ * wraps in both directions. Returns null when the list is empty.
+ */
+export function stepSelection(items: string[], pending: string | null, active: string | null, ticks: number): string | null {
+	if (items.length === 0) return null;
+	const from = pending !== null && items.includes(pending) ? pending : active !== null && items.includes(active) ? active : null;
+	const start = from === null ? (ticks >= 0 ? -1 : 0) : items.indexOf(from);
+	const next = (((start + ticks) % items.length) + items.length) % items.length;
+	return items[next] ?? null;
+}
+
 /** The setting values the Audio action stores. "keep" leaves the spatial format as it is. */
 export function spatialArgument(setting: string | undefined): string | undefined {
 	if (setting === undefined || setting === "" || setting === "keep") return undefined;

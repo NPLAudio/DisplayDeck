@@ -72,7 +72,7 @@ Good to know:
 
 ## 5. Add it to your Stream Deck (optional)
 
-If you have Stream Deck 7.1 or newer installed, the tray menu shows **Install Stream Deck plugin...**.
+If you have Stream Deck 7.6 or newer installed, the tray menu shows **Install Stream Deck plugin...**.
 
 1. Right-click the DisplayDeck tray icon and choose **Install Stream Deck plugin...**, then confirm in the
    Stream Deck window that opens.
@@ -81,7 +81,10 @@ If you have Stream Deck 7.1 or newer installed, the tray menu shows **Install St
 4. Optional extras: **Next profile** (cycles through your profiles), **Undo layout**, and **Audio output**
    (makes a playback device the default, with an optional spatial format).
 
-The keys need DisplayDeck running on the same PC; if it isn't, they show a warning mark. A key's green ring
+Using a Stream Deck +? Drag **Profile dial** or **Audio dial** onto a dial: turn to choose, press or tap to confirm.
+**Status** shows the current profile and audio device on a Neo info bar or a dial.
+
+The keys, dials and info bar need DisplayDeck running on the same PC; if it isn't, they show a warning mark. A key's green ring
 means that profile (or audio device) is the active one right now.
 
 ## Start with Windows

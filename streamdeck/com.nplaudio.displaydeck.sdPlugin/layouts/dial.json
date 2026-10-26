@@ -1,0 +1,11 @@
+{
+	"$schema": "https://schemas.elgato.com/streamdeck/plugins/layout.json",
+	"id": "com.nplaudio.displaydeck.dial",
+	"controller": "Encoder",
+	"items": [
+		{ "key": "icon", "type": "pixmap", "rect": [12, 12, 28, 28] },
+		{ "key": "title", "type": "text", "rect": [48, 14, 140, 22], "font": { "size": 14, "weight": 600 }, "alignment": "left", "color": "#a1a1aa" },
+		{ "key": "value", "type": "text", "rect": [10, 42, 180, 32], "font": { "size": 24, "weight": 700 }, "alignment": "center", "text-overflow": "ellipsis", "color": "#fafafa" },
+		{ "key": "hint", "type": "text", "rect": [10, 76, 180, 20], "font": { "size": 14, "weight": 400 }, "alignment": "center", "text-overflow": "ellipsis", "color": "#a1a1aa" }
+	]
+}

@@ -24,6 +24,12 @@ const ICONS = {
 		'<path d="M64 36a20 20 0 0 1 0 28M76 22a38 38 0 0 1 0 56" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"/>',
 } as const;
 
+/** A small pictogram on a transparent background, for dial and info bar layouts. */
+export function iconImage(name: keyof typeof ICONS, color = "#fafafa"): string {
+	const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="-6 -6 112 112"><g color="${color}">${ICONS[name]}</g></svg>`;
+	return "data:image/svg+xml;charset=utf8," + encodeURIComponent(svg);
+}
+
 export function escapeXml(text: string): string {
 	return text.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" })[c] as string);
 }

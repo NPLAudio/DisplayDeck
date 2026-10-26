@@ -91,8 +91,8 @@ installer/   build scripts and the WiX definition for the MSI
 
 ## Stream Deck
 
-If Stream Deck 7.1 or newer is installed, the tray menu has **Install Stream Deck plugin...**. Choose it and
-confirm in Stream Deck. The plugin adds a **DisplayDeck** category with four keys:
+If Stream Deck 7.6 or newer is installed, the tray menu has **Install Stream Deck plugin...**. Choose it and
+confirm in Stream Deck. The plugin adds a **DisplayDeck** category with four keys, two dials and a status display:
 
 | Key | What it does |
 | --- | --- |
@@ -101,7 +101,18 @@ confirm in Stream Deck. The plugin adds a **DisplayDeck** category with four key
 | **Undo layout** | Goes back to the layout from before the last change. |
 | **Audio output** | Makes a playback device the default, with an optional spatial format (the list shows what that device supports). Ringed while it is the default. |
 
-The keys talk to DisplayDeck on the same PC, so DisplayDeck has to be running; if it isn't, the keys show a
+**Dials (Stream Deck +).** Turn to browse, then press the dial or tap the touch strip to confirm. Nothing changes until you confirm, and a half-made choice is dropped after a few seconds.
+
+| Dial | What it does |
+| --- | --- |
+| **Profile dial** | Turn to browse your saved profiles; press or tap to apply the one shown. Green while it is the active profile. |
+| **Audio dial** | Turn to browse playback devices; press or tap to make the one shown the default. The spatial format is left as it is. |
+| **Undo layout** | Also works on a dial: press or tap to go back. |
+| **Status** | Shows the current profile and the default playback device. Press or tap to refresh. |
+
+**Info bar (Stream Deck Neo).** Drop **Status** on the info bar to see the current profile and default audio device at a glance.
+
+The keys and dials talk to DisplayDeck on the same PC, so DisplayDeck has to be running; if it isn't, the keys show a
 warning mark. Stream Deck cannot create keys for you, so each profile you want on a key is one **Apply profile**
 key set to that profile.
 
