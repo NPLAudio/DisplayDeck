@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<title>Apply profile</title>
+		<script src="sdpi-components.js"></script>
+	</head>
+	<body>
+		<sdpi-item label="Profile">
+			<sdpi-select setting="profile" datasource="getProfiles" loading="Loading profiles..." placeholder="Choose a profile" hot-reload></sdpi-select>
+		</sdpi-item>
+		<sdpi-item>
+			<details>
+				<summary>About this key</summary>
+				<p>Applies the saved layout, and its audio device and spatial format if the profile has them. The key shows a green ring while the profile is active.</p>
+				<p>Profiles come from DisplayDeck, which has to be running. Save new ones from its tray menu.</p>
+			</details>
+		</sdpi-item>
+	</body>
+</html>

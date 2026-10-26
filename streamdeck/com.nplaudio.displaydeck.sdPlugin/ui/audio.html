@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<title>Audio output</title>
+		<script src="sdpi-components.js"></script>
+	</head>
+	<body>
+		<sdpi-item label="Device">
+			<sdpi-select setting="device" datasource="getDevices" loading="Loading devices..." placeholder="Choose a playback device" hot-reload></sdpi-select>
+		</sdpi-item>
+		<sdpi-item label="Spatial sound">
+			<sdpi-select setting="spatial" datasource="getFormats" loading="Loading formats..." placeholder="Leave as it is" default="keep" hot-reload></sdpi-select>
+		</sdpi-item>
+		<sdpi-item>
+			<details>
+				<summary>About this key</summary>
+				<p>Makes the chosen device the default playback device. The spatial format list shows what that device supports; choose "Off" to turn spatial sound off.</p>
+				<p>The key shows a green ring while the device is the default.</p>
+			</details>
+		</sdpi-item>
+	</body>
+</html>

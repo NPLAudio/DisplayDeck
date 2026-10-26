@@ -3,7 +3,7 @@ const http = require('http');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
-const { buildProfiles, scanFiles, writeLastApplied } = require('./lib/profiles');
+const { buildProfiles, scanFiles, writeLastApplied, currentStatus } = require('./lib/profiles');
 const system = require('./lib/system');
 const { createConfig } = require('./lib/settings');
 const { qrSvg } = require('./lib/qr');
@@ -43,6 +43,7 @@ const STATIC = {
   '/settings': ['settings.html', 'text/html'],
   '/app.css': ['app.css', 'text/css'],
   '/app.js': ['app.js', 'text/javascript'],
+  '/favicon.svg': ['favicon.svg', 'image/svg+xml'],
 };
 
 let version = '';
@@ -95,6 +96,18 @@ async function handle(req, res) {
     return send(res, 200, fs.readFileSync(path.join(__dirname, 'public', file), 'utf8'), type, type === 'text/html' ? 'no-store' : 'no-cache');
   }
   if (req.method === 'GET' && url.pathname === '/api/profiles') return send(res, 200, await buildProfiles(cfg));
+  // Light status for hardware decks and other pollers: profile names, current, last applied.
+  if (req.method === 'GET' && url.pathname === '/api/current') return send(res, 200, await currentStatus(cfg));
+
+  // Set the default playback device (and optionally its spatial format) without involving a profile.
+  if (req.method === 'POST' && url.pathname === '/api/audio/apply') {
+    if (!sameOrigin(req)) return send(res, 403, { error: 'Cross-origin request refused' });
+    const body = await readBody(req);
+    if (typeof body.device !== 'string' || !body.device.trim()) return send(res, 400, { error: 'device is required' });
+    const spatial = typeof body.spatial === 'string' && body.spatial.trim() ? body.spatial.trim() : undefined;
+    await system.applyAudio(cfg, { device: body.device, spatial });
+    return send(res, 200, { ok: true });
+  }
   if (req.method === 'GET' && url.pathname === '/api/audio-devices') {
     return send(res, 200, { devices: await system.listPlaybackDevices(cfg) });
   }

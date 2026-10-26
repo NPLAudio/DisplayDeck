@@ -8,3 +8,6 @@ installer/dist/
 installer/tools/
 installer/app.ico
 bin/
+streamdeck/dist/
+streamdeck/com.nplaudio.displaydeck.sdPlugin/bin/
+streamdeck/com.nplaudio.displaydeck.sdPlugin/logs/

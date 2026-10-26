@@ -1,10 +1,10 @@
 {
   "name": "displaydeck",
-  "version": "2.0.2",
+  "version": "2.1.2",
   "private": true,
   "license": "MIT",
   "scripts": {
     "start": "node server.js",
-    "test": "node --test test/parser.test.js test/settings.test.js test/qr.test.js test/server.test.js test/mentions.test.js"
+    "test": "node --test test/parser.test.js test/settings.test.js test/qr.test.js test/server.test.js test/current-status.test.js test/mentions.test.js"
   }
 }

@@ -29,6 +29,8 @@ It is a single self-contained app: nothing else needs to be downloaded or instal
   same page on your phone, protected by a private access key and limited to your home network.
 - **Friendly names.** Monitors are named from the profile, falling back to the Windows EDID name or a short
   ID, and you can override any name.
+- **Stream Deck.** An optional plugin puts profile, next-profile, undo and audio-output keys on your Stream Deck.
+  The profile and audio keys light up when they are the active one. See [Stream Deck](#stream-deck).
 - **Three pages.** Profiles, Phone (the QR code) and Settings each have their own page, reachable from the
   tabs at the top or from the tray menu.
 - **Light and dark.** The interface uses [shadcn/ui](https://ui.shadcn.com) design tokens (zinc theme),
@@ -65,6 +67,8 @@ to Windows:
 ctl/         DisplayDeckCtl.exe source: display layouts (QueryDisplayConfig / SetDisplayConfig) and audio devices (Core Audio)
 tray/        DisplayDeck.exe source: tray icon, menu, starts the server, firewall prompt
 web/         the server and the page; parses profile files and runs the helper
+streamdeck/  the Stream Deck plugin (TypeScript, built with Node 24)
+brand/       the icon drawing code (app icon, tray, installer, plugin icons)
 installer/   build scripts and the WiX definition for the MSI
 ```
 
@@ -84,6 +88,27 @@ installer/   build scripts and the WiX definition for the MSI
 - The page re-scans the profile folder every time it loads, so new or edited profiles appear without
   restarting anything.
 - The profile file format and the HTTP API are documented in [web/README.md](web/README.md).
+
+## Stream Deck
+
+If Stream Deck 7.1 or newer is installed, the tray menu has **Install Stream Deck plugin...**. Choose it and
+confirm in Stream Deck. The plugin adds a **DisplayDeck** category with four keys:
+
+| Key | What it does |
+| --- | --- |
+| **Apply profile** | Pick a profile from a dropdown; pressing the key applies it (layout and audio). A green ring shows while it is the active profile. |
+| **Next profile** | Applies the next saved profile, wrapping around. Handy when you have more profiles than keys. |
+| **Undo layout** | Goes back to the layout from before the last change. |
+| **Audio output** | Makes a playback device the default, with an optional spatial format (the list shows what that device supports). Ringed while it is the default. |
+
+The keys talk to DisplayDeck on the same PC, so DisplayDeck has to be running; if it isn't, the keys show a
+warning mark. Stream Deck cannot create keys for you, so each profile you want on a key is one **Apply profile**
+key set to that profile.
+
+The plugin source is in `streamdeck/`. It is written in TypeScript against Elgato's SDK and needs Node.js 24 or
+newer to build (`streamdeck\build.ps1` finds it on PATH or in an [nvm-windows](https://github.com/coreybutler/nvm-windows)
+install). `npm test` there runs unit tests and end-to-end tests that drive the built plugin through a mock Stream
+Deck host and a stub DisplayDeck server, so nothing real is changed.
 
 ## Privacy and security
 

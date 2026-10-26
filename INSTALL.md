@@ -70,6 +70,20 @@ Good to know:
 - To turn phone access off, untick **Allow other devices (phone)**.
 - If you prefer text, **Copy phone link** puts the same link on the clipboard.
 
+## 5. Add it to your Stream Deck (optional)
+
+If you have Stream Deck 7.1 or newer installed, the tray menu shows **Install Stream Deck plugin...**.
+
+1. Right-click the DisplayDeck tray icon and choose **Install Stream Deck plugin...**, then confirm in the
+   Stream Deck window that opens.
+2. In Stream Deck, find the **DisplayDeck** category in the actions list and drag **Apply profile** onto a key.
+3. In the panel below, pick the profile from the dropdown. Repeat for each profile you want on a key.
+4. Optional extras: **Next profile** (cycles through your profiles), **Undo layout**, and **Audio output**
+   (makes a playback device the default, with an optional spatial format).
+
+The keys need DisplayDeck running on the same PC; if it isn't, they show a warning mark. A key's green ring
+means that profile (or audio device) is the active one right now.
+
 ## Start with Windows
 
 DisplayDeck turns on **Start with Windows** the first time it runs. To change that, right-click the tray icon
@@ -117,6 +131,14 @@ from it with **Edit audio**. Devices that are unplugged or disabled do not appea
 **The folder window did not appear.**
 It should open in front of your browser. If it seems to do nothing, look for a new window in the taskbar, and
 check that you clicked from the PC itself (not from a phone).
+
+**There is no "Install Stream Deck plugin..." item.**
+It only appears when Stream Deck is installed on this PC and the installer included the plugin. Installers
+built without Node 24 leave the plugin out; see [README.md](README.md#stream-deck).
+
+**A Stream Deck key shows a warning mark.**
+DisplayDeck isn't running, or the profile or audio device it points at no longer exists (the caption says
+"offline", "missing" or "not found"). Start DisplayDeck, or pick another profile or device in the key's panel.
 
 **SmartScreen warns about the installer.**
 The MSI is not code-signed. Choose **More info**, then **Run anyway**.

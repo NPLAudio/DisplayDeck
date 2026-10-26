@@ -11,6 +11,15 @@ below, and it does not rely on any other program being installed.
 
 "QR Code" is a registered trademark of DENSO WAVE INCORPORATED.
 
+### Stream Deck plugin (`streamdeck/`)
+
+| Component | Where | License |
+| --- | --- | --- |
+| [@elgato/streamdeck](https://github.com/elgatosf/streamdeck) SDK and its dependencies (`@elgato/utils`, `@elgato/schemas`, `zod`, `ws`) | bundled into the plugin's `bin/plugin.js` at build time | MIT |
+| [sdpi-components](https://sdpi-components.dev) 4.0.1 (which includes Lit, BSD-3-Clause) | `streamdeck/com.nplaudio.displaydeck.sdPlugin/ui/sdpi-components.js` | MIT (Lit: BSD-3-Clause; the file keeps its license header) |
+
+The plugin is built with Node.js 24, Rollup, TypeScript and Elgato's CLI; none of them ship in the installer.
+
 DisplayDeck uses documented Windows APIs (display configuration, Core Audio) and one undocumented Windows
 COM interface (the audio policy interface that the Sound control panel also uses) to set the default playback
 device.

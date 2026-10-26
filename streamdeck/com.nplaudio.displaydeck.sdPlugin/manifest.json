@@ -1,0 +1,89 @@
+{
+	"$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
+	"Name": "DisplayDeck",
+	"Version": "1.0.0.0",
+	"Author": "NPL Audio",
+	"Actions": [
+		{
+			"Name": "Apply profile",
+			"UUID": "com.nplaudio.displaydeck.profile",
+			"Icon": "imgs/actions/profile/icon",
+			"Tooltip": "Applies one of your saved DisplayDeck profiles (display layout and audio). Lights up while it is the active profile.",
+			"PropertyInspectorPath": "ui/profile.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/profile/key",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"Name": "Next profile",
+			"UUID": "com.nplaudio.displaydeck.next",
+			"Icon": "imgs/actions/next/icon",
+			"Tooltip": "Applies the next saved profile, wrapping around. Useful when you have more profiles than keys.",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/next/key",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"Name": "Undo layout",
+			"UUID": "com.nplaudio.displaydeck.undo",
+			"Icon": "imgs/actions/undo/icon",
+			"Tooltip": "Goes back to the display layout from before the last change.",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/undo/key",
+					"ShowTitle": false
+				}
+			]
+		},
+		{
+			"Name": "Audio output",
+			"UUID": "com.nplaudio.displaydeck.audio",
+			"Icon": "imgs/actions/audio/icon",
+			"Tooltip": "Makes one playback device the default, with an optional spatial sound format. Lights up while it is the default.",
+			"PropertyInspectorPath": "ui/audio.html",
+			"Controllers": [
+				"Keypad"
+			],
+			"States": [
+				{
+					"Image": "imgs/actions/audio/key",
+					"ShowTitle": false
+				}
+			]
+		}
+	],
+	"Category": "DisplayDeck",
+	"CategoryIcon": "imgs/plugin/category-icon",
+	"CodePath": "bin/plugin.js",
+	"Description": "Switch your monitor layouts and audio devices with a key. Requires DisplayDeck running on the same PC.",
+	"Icon": "imgs/plugin/marketplace",
+	"SDKVersion": 3,
+	"Software": {
+		"MinimumVersion": "7.1"
+	},
+	"OS": [
+		{
+			"Platform": "windows",
+			"MinimumVersion": "10"
+		}
+	],
+	"Nodejs": {
+		"Version": "24"
+	},
+	"UUID": "com.nplaudio.displaydeck"
+}

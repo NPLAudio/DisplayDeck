@@ -329,6 +329,18 @@ namespace DisplayDeck
                     menu.Items.Add(fw);
                 }
             }
+            string plugin = Path.Combine(root, @"streamdeck\com.nplaudio.displaydeck.streamDeckPlugin");
+            if (File.Exists(plugin) && StreamDeckInstalled())
+            {
+                AddSeparator();
+                ToolStripMenuItem sd = new ToolStripMenuItem("Install Stream Deck plugin...");
+                sd.Click += delegate
+                {
+                    try { Process.Start(new ProcessStartInfo(plugin) { UseShellExecute = true }); } // Stream Deck owns this file type
+                    catch (Exception ex) { Balloon("Could not open the plugin", ex.Message, ToolTipIcon.Error); }
+                };
+                menu.Items.Add(sd);
+            }
             AddSeparator();
             ToolStripMenuItem auto = new ToolStripMenuItem("Start with Windows");
             auto.Checked = AutoStartEnabled();
@@ -341,6 +353,16 @@ namespace DisplayDeck
             ToolStripMenuItem quit = new ToolStripMenuItem("Quit");
             quit.Click += delegate { Quit(); };
             menu.Items.Add(quit);
+        }
+
+        static bool StreamDeckInstalled()
+        {
+            foreach (Environment.SpecialFolder f in new Environment.SpecialFolder[] { Environment.SpecialFolder.ProgramFiles, Environment.SpecialFolder.ProgramFilesX86 })
+            {
+                string dir = Environment.GetFolderPath(f);
+                if (dir.Length > 0 && File.Exists(Path.Combine(dir, @"Elgato\StreamDeck\StreamDeck.exe"))) return true;
+            }
+            return false;
         }
 
         // Adds a separator only between two items: never first, never twice in a row.

@@ -130,4 +130,27 @@ async function buildProfiles(cfg) {
   };
 }
 
-module.exports = { buildProfiles, scanFiles, writeLastApplied };
+// A light summary for things that poll (hardware decks): the profile names, which one matches the live
+// layout, and the last one applied. Skips display naming, so it is much cheaper than buildProfiles.
+async function currentStatus(cfg) {
+  const files = scanFiles(cfg);
+  const live = await getLive(cfg);
+  const matching = [];
+  for (const f of files) {
+    const e = readParsed(f.file, f.st);
+    if (!e.parsed) continue;
+    const sig = layoutSignature(e.parsed);
+    if (live && live.signature && sig && sig === live.signature) matching.push(f.name);
+  }
+  const names = files.map((f) => f.name);
+  const lastApplied = readLastApplied(cfg);
+  return {
+    profiles: names,
+    current: matching[0] || null,
+    // A profile that was applied and later deleted is not worth reporting.
+    lastApplied: lastApplied !== null && names.includes(lastApplied) ? lastApplied : null,
+    liveAvailable: !!live,
+  };
+}
+
+module.exports = { buildProfiles, scanFiles, writeLastApplied, currentStatus };

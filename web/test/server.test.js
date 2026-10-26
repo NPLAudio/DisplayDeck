@@ -55,6 +55,7 @@ test('serves the three pages and the shared assets with the right types', async 
       ['/settings', 'text/html', 'id="setForm"'],
       ['/app.css', 'text/css', '--primary'],
       ['/app.js', 'text/javascript', 'function renderShell'],
+      ['/favicon.svg', 'image/svg+xml', '<svg'],
     ]) {
       const r = await get(port, p);
       assert.equal(r.status, 200, p);
@@ -88,5 +89,29 @@ test('settings report the app version and this PC as editable', async () => {
     const s = JSON.parse((await get(port, '/api/settings')).body);
     assert.equal(s.canEdit, true);
     assert.match(s.version, /^\d+\.\d+\.\d+$/);
+  });
+});
+
+test('/api/current reports the saved profile names and never fails when the helper is missing', async () => {
+  await withServer(async (port) => {
+    const r = await get(port, '/api/current');
+    assert.equal(r.status, 200);
+    const j = JSON.parse(r.body);
+    assert.ok(Array.isArray(j.profiles));
+    assert.ok('current' in j && 'lastApplied' in j && 'liveAvailable' in j);
+  });
+});
+
+test('/api/audio/apply validates its input', async () => {
+  await withServer(async (port) => {
+    const post = (body) => new Promise((resolve, reject) => {
+      const req = http.request({ host: '127.0.0.1', port, path: '/api/audio/apply', method: 'POST', headers: { 'Content-Type': 'application/json' } }, (res) => {
+        let b = ''; res.on('data', (c) => (b += c)); res.on('end', () => resolve({ status: res.statusCode, body: b }));
+      });
+      req.on('error', reject); req.end(JSON.stringify(body));
+    });
+    assert.equal((await post({})).status, 400);
+    assert.equal((await post({ device: '   ' })).status, 400);
+    assert.equal((await post({ device: 'Nope\Device\X\Render' })).status, 500); // helper reports no such device
   });
 });
