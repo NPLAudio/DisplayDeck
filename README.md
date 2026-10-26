@@ -133,6 +133,11 @@ The QR code uses a vendored copy of Kazuhiko Arase's QRCode library (MIT) via
 `web/lib/vendor/qrcode/`. The MSI bundles the official Node.js runtime (MIT) with its license.
 Full details are in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
+## Support
+
+DisplayDeck is free and open source. If it saves you some clicks, you can
+[buy me a coffee](https://buymeacoffee.com/notpunny).
+
 ## License
 
 DisplayDeck is released under the [MIT License](LICENSE).
