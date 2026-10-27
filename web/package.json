@@ -1,10 +1,10 @@
 ﻿{
   "name": "displaydeck",
-  "version": "2.5.7",
+  "version": "2.6.0",
   "private": true,
   "license": "MIT",
   "scripts": {
     "start": "node server.js",
-    "test": "node --test test/parser.test.js test/settings.test.js test/qr.test.js test/server.test.js test/current-status.test.js test/editor.test.js test/homescreen.test.js test/monitors.test.js test/mentions.test.js"
+    "test": "node --test test/parser.test.js test/settings.test.js test/qr.test.js test/server.test.js test/current-status.test.js test/editor.test.js test/homescreen.test.js test/monitors.test.js test/options.test.js test/mentions.test.js"
   }
 }

@@ -101,6 +101,9 @@ format, a single UAC prompt appears for that step.
 | `POST /api/profiles/save` `{name, overwrite?}` | save the current layout as a profile |
 | `DELETE /api/profiles/<name>` | delete a profile and its audio file (this PC only) |
 | `POST /api/undo-layout` | go back to the layout before the last apply |
+| `POST /api/options/<name>` | a profile's shortcut, programs and saved extras (this PC only); see below |
+| `GET /api/hotkeys` | the profile shortcuts, for the tray to register |
+| `POST /api/hotkeys/report` | the tray reports shortcuts Windows refused (this PC only) |
 | `GET /api/audio-devices` | active playback devices, the default, and each device's spatial formats |
 | `POST /api/audio-config/<name>` | save or remove (`{clear:true}`) a profile's audio settings; `applyNow` switches immediately |
 | `GET/POST /api/settings` | the profiles folder (changes from this PC only) |
@@ -108,6 +111,29 @@ format, a single UAC prompt appears for that step.
 | `GET /api/phone-link` | access link and QR code (this PC only) |
 
 Every state-changing request refuses cross-origin calls, and `apply` only accepts names of profiles that exist.
+
+## Profile options
+
+`<profile>.options.json` next to the profile holds what happens besides the layout and audio. Applying a profile runs: layout, then the saved extras, then audio, then the programs.
+
+```json
+{ "hotkey": "Ctrl+Alt+1",
+  "run": [ { "path": "C:\\Tools\\lights.ps1", "args": "-Scene Desk" } ],
+  "extras": {
+    "hdr":       [ { "targetId": 4353, "hwId": "MSI3FA8", "name": "MPG 491C OLED", "enabled": true } ],
+    "dpi":       [ { "targetId": 4353, "hwId": "MSI3FA8", "name": "MPG 491C OLED", "percent": 125 } ],
+    "wallpaper": { "mode": "picture", "position": "fill", "color": "#000000",
+                   "monitors": [ { "targetId": 4353, "hwId": "MSI3FA8", "name": "MPG 491C OLED", "path": "C:\\Pictures\\a.jpg" } ] } },
+  "extrasAt": "2026-10-27T10:28:22.028Z" }
+```
+
+- `hotkey`: modifiers (Ctrl, Alt, Shift, Win) and one key (letters, digits, F1 to F24, arrows, Home, End, PageUp, PageDown, Insert, Delete, Space, Numpad0 to Numpad9). It needs Ctrl, Alt or Win and belongs to one profile. The tray registers it with Windows.
+- `run`: up to five programs started after everything else, without waiting. `.exe` and `.com` start directly; `.ps1`, `.vbs` and `.js` through PowerShell and the Windows script host; `.bat`, `.cmd`, `.lnk`, `.py` and `.ahk` through a hidden command prompt. Paths must be full local paths of files that exist.
+- `extras`: written by the helper (`DisplayDeckCtl extras capture`) from the screens as they are. Entries are matched to displays by display id, otherwise by make and model when only one display has it. `wallpaper.mode` is `picture`, `color` or `slideshow` (with `slideshow: { paths, options, tick }`).
+
+`POST /api/options/<name>` takes any of `{ hotkey, run, extras }` and leaves what is left out unchanged. `hotkey: ""` removes the shortcut, `run` replaces the list, and `extras` maps `hdr`, `dpi` or `wallpaper` to `"capture"` (read it from the screens now) or `"remove"`. If a requested extra cannot be read, nothing is saved and the answer says why. Only this PC may call it, because a program path ends up being executed. `apply` reports problems in `warnings` and `runErrors`.
+
+`DisplayDeckCli.exe` (in `bin`) is a console tool over the same API: `apply <profile>`, `list`, `current`, `undo`, `open`.
 
 ## Behavior
 

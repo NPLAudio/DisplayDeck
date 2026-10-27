@@ -23,7 +23,7 @@ while ($rec = $view.GetType().InvokeMember('Fetch', 'InvokeMethod', $null, $view
 }
 $view.GetType().InvokeMember('Close', 'InvokeMethod', $null, $view, $null) | Out-Null
 $exes = $shipped | Where-Object { $_ -match '\.(exe|dll|chm|sys|msi)$' } | Sort-Object
-$expected = 'DisplayDeck.exe', 'DisplayDeckCtl.exe', 'node.exe'
+$expected = 'DisplayDeck.exe', 'DisplayDeckCtl.exe', 'DisplayDeckCli.exe', 'node.exe'
 $bad = $exes | Where-Object { $expected -notcontains $_ }
 if ($bad) { Remove-Item $out -Force; throw "MSI contains unexpected executables ($($bad -join ', ')); deleted $out" }
 Write-Host "MSI check: $($shipped.Count) files, executables: $($exes -join ', ')"

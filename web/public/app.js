@@ -30,6 +30,7 @@ const ICONS = {
   alert: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4M12 17h.01"/>',
   check: '<path d="M20 6 9 17l-5-5"/>',
   layout: '<rect width="9" height="7" x="3" y="4" rx="1"/><rect width="9" height="7" x="12" y="13" rx="1"/>',
+  sliders: '<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>',
 };
 
 function icon(name, cls = '') {

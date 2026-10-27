@@ -214,3 +214,13 @@ details.section > .section-body { padding: 0 16px 16px; border-top: 1px solid hs
 
 ol.steps { margin: 0; padding-left: 20px; }
 ol.steps li { padding: 3px 0; }
+
+/* ---- profile options dialog ---- */
+dialog.wide { width: min(94vw, 560px); max-height: 90vh; overflow-y: auto; }
+.opt-section { margin-top: 18px; }
+.opt-section h3 { margin: 0 0 8px; font-size: 14px; font-weight: 600; }
+.opt-section .muted.small { margin: 6px 0 0; }
+.check { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.check input[type=checkbox] { width: 16px; height: 16px; flex: none; accent-color: hsl(var(--primary)); }
+.check label { display: flex; flex-direction: column; gap: 2px; flex: 1 1 200px; }
+.check-note { flex-basis: 100%; padding-left: 26px; }

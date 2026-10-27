@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Net;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Web.Script.Serialization;
@@ -23,7 +24,9 @@ namespace DisplayDeck
         static void Main()
         {
             bool created;
-            using (Mutex mutex = new Mutex(true, @"Local\DisplayDeckTray", out created))
+            // A test copy on another port (DISPLAYDECK_PORT) gets its own lock, so it can run beside the installed one.
+            string suffix = Environment.GetEnvironmentVariable("DISPLAYDECK_PORT");
+            using (Mutex mutex = new Mutex(true, @"Local\DisplayDeckTray" + (string.IsNullOrEmpty(suffix) ? "" : "-" + suffix), out created))
             {
                 if (!created) return;
                 Application.EnableVisualStyles();
@@ -39,9 +42,82 @@ namespace DisplayDeck
         public bool LastApplied;
     }
 
+    // A hidden window that receives the WM_HOTKEY messages for the profile shortcuts.
+    class HotkeyWindow : NativeWindow
+    {
+        const int WM_HOTKEY = 0x0312;
+        const uint MOD_NOREPEAT = 0x4000;
+
+        [DllImport("user32.dll", SetLastError = true)]
+        static extern bool RegisterHotKey(IntPtr hWnd, int id, uint modifiers, uint vk);
+        [DllImport("user32.dll")]
+        static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+
+        public event Action<int> Pressed;
+        readonly List<int> ids = new List<int>();
+
+        public HotkeyWindow() { CreateHandle(new CreateParams()); }
+
+        protected override void WndProc(ref Message m)
+        {
+            if (m.Msg == WM_HOTKEY && Pressed != null) Pressed(m.WParam.ToInt32());
+            base.WndProc(ref m);
+        }
+
+        // "Ctrl+Alt+1" -> Windows modifier flags and virtual-key code. False for anything we do not understand.
+        public static bool TryParse(string spec, out uint mods, out uint vk)
+        {
+            mods = 0; vk = 0;
+            if (string.IsNullOrEmpty(spec)) return false;
+            foreach (string raw in spec.Split('+'))
+            {
+                string p = raw.Trim();
+                if (p == "Alt") mods |= 1;
+                else if (p == "Ctrl") mods |= 2;
+                else if (p == "Shift") mods |= 4;
+                else if (p == "Win") mods |= 8;
+                else if (vk != 0) return false;
+                else vk = KeyCode(p);
+            }
+            return vk != 0 && (mods & (1 | 2 | 8)) != 0;
+        }
+
+        static uint KeyCode(string p)
+        {
+            if (p.Length == 1 && ((p[0] >= 'A' && p[0] <= 'Z') || (p[0] >= '0' && p[0] <= '9'))) return (uint)p[0];
+            int n;
+            if (p.Length > 1 && p[0] == 'F' && int.TryParse(p.Substring(1), out n) && n >= 1 && n <= 24) return (uint)(0x70 + n - 1);
+            if (p.StartsWith("Numpad") && p.Length == 7 && p[6] >= '0' && p[6] <= '9') return (uint)(0x60 + (p[6] - '0'));
+            switch (p)
+            {
+                case "Up": return 0x26; case "Down": return 0x28; case "Left": return 0x25; case "Right": return 0x27;
+                case "Home": return 0x24; case "End": return 0x23; case "PageUp": return 0x21; case "PageDown": return 0x22;
+                case "Insert": return 0x2D; case "Delete": return 0x2E; case "Space": return 0x20;
+            }
+            return 0;
+        }
+
+        /// <summary>Registers one shortcut. Returns null when it worked, otherwise the reason it did not.</summary>
+        public string Register(int id, string spec)
+        {
+            uint mods, vk;
+            if (!TryParse(spec, out mods, out vk)) return "DisplayDeck does not understand " + spec + ".";
+            if (RegisterHotKey(Handle, id, mods | MOD_NOREPEAT, vk)) { ids.Add(id); return null; }
+            int err = Marshal.GetLastWin32Error();
+            return err == 1409 ? "Another program already uses " + spec + "." : "Windows would not register " + spec + " (error " + err + ").";
+        }
+
+        public void UnregisterAll()
+        {
+            foreach (int id in ids) UnregisterHotKey(Handle, id);
+            ids.Clear();
+        }
+    }
+
     class TrayContext : ApplicationContext
     {
-        const int Port = 8765;
+        // A test copy can use another port; installed copies always use 8765.
+        static readonly int Port = EnvPort();
         const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
         const string RunValue = "DisplayDeck";
 
@@ -53,6 +129,17 @@ namespace DisplayDeck
         List<ProfileItem> profiles = new List<ProfileItem>();
         Process server;
         System.Windows.Forms.Timer refreshTimer = new System.Windows.Forms.Timer();
+        System.Windows.Forms.Timer hotkeyTimer = new System.Windows.Forms.Timer();
+        readonly HotkeyWindow hotkeyWindow = new HotkeyWindow();
+        readonly Dictionary<int, string> hotkeyProfiles = new Dictionary<int, string>();
+        string hotkeySignature = "";
+        bool hotkeyPolling;
+
+        static int EnvPort()
+        {
+            int p;
+            return int.TryParse(Environment.GetEnvironmentVariable("DISPLAYDECK_PORT"), out p) && p > 0 && p < 65536 ? p : 8765;
+        }
 
         public TrayContext()
         {
@@ -75,6 +162,71 @@ namespace DisplayDeck
             refreshTimer.Start();
             RefreshProfilesAsync();
             BuildMenu();
+
+            // Keyboard shortcuts set on the profile page. Checked every few seconds so a change takes effect quickly.
+            hotkeyWindow.Pressed += delegate(int id)
+            {
+                string name;
+                if (hotkeyProfiles.TryGetValue(id, out name)) ApplyAsync(name);
+            };
+            hotkeyTimer.Interval = 4000;
+            hotkeyTimer.Tick += delegate { RefreshHotkeysAsync(); };
+            hotkeyTimer.Start();
+            RefreshHotkeysAsync();
+        }
+
+        // Reads the shortcut list from the server and, only when it changed, registers it with Windows.
+        void RefreshHotkeysAsync()
+        {
+            if (hotkeyPolling) return;
+            hotkeyPolling = true;
+            System.Threading.SynchronizationContext ui = System.Threading.SynchronizationContext.Current;
+            if (ui == null) { hotkeyPolling = false; return; } // the message loop is not running yet; the timer asks again
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                try
+                {
+                    string json = Http("GET", "api/hotkeys", 5000);
+                    Dictionary<string, object> root2 = (Dictionary<string, object>)new JavaScriptSerializer().DeserializeObject(json);
+                    List<KeyValuePair<string, string>> wanted = new List<KeyValuePair<string, string>>();
+                    foreach (object o in (IEnumerable)root2["hotkeys"])
+                    {
+                        Dictionary<string, object> d = (Dictionary<string, object>)o;
+                        wanted.Add(new KeyValuePair<string, string>((string)d["name"], (string)d["hotkey"]));
+                    }
+                    StringBuilder sig = new StringBuilder();
+                    foreach (KeyValuePair<string, string> w in wanted) sig.Append(w.Key).Append('\u0001').Append(w.Value).Append('\u0002');
+                    if (sig.ToString() == hotkeySignature) return;
+                    ui.Post(delegate { ApplyHotkeys(wanted, sig.ToString()); }, null);
+                }
+                catch (Exception) { /* server not ready yet; the next tick retries */ }
+                finally { hotkeyPolling = false; }
+            });
+        }
+
+        void ApplyHotkeys(List<KeyValuePair<string, string>> wanted, string signature)
+        {
+            hotkeyWindow.UnregisterAll();
+            hotkeyProfiles.Clear();
+            Dictionary<string, object> failed = new Dictionary<string, object>();
+            int id = 1;
+            foreach (KeyValuePair<string, string> w in wanted)
+            {
+                string problem = hotkeyWindow.Register(id, w.Value);
+                if (problem == null) hotkeyProfiles[id] = w.Key; else failed[w.Key] = problem;
+                id++;
+            }
+            hotkeySignature = signature;
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                try
+                {
+                    Dictionary<string, object> body = new Dictionary<string, object>();
+                    body["failed"] = failed;
+                    Http("POST", "api/hotkeys/report", 5000, new JavaScriptSerializer().Serialize(body));
+                }
+                catch (Exception) { }
+            });
         }
 
         void StartServer()
@@ -84,8 +236,7 @@ namespace DisplayDeck
             string script = Path.Combine(root, @"web\server.js");
             if (!File.Exists(node) || !File.Exists(script)) return;
 
-            string data = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DisplayDeck");
-            Directory.CreateDirectory(data);
+            string data = DataDir();
 
             ProcessStartInfo psi = new ProcessStartInfo(node, "\"" + script + "\"");
             psi.WorkingDirectory = root;
@@ -93,6 +244,7 @@ namespace DisplayDeck
             psi.CreateNoWindow = true;
             psi.EnvironmentVariables["STATE_FILE"] = Path.Combine(data, "state.json");
             psi.EnvironmentVariables["TRAY_PID"] = Process.GetCurrentProcess().Id.ToString();
+            psi.EnvironmentVariables["PORT"] = Port.ToString();
             if (LanEnabled())
             {
                 psi.EnvironmentVariables["HOST"] = "0.0.0.0";
@@ -103,9 +255,12 @@ namespace DisplayDeck
             server = Process.Start(psi);
         }
 
+        // DISPLAYDECK_DATA moves the settings, key and state elsewhere (used by test copies; the helper honors it too).
         string DataDir()
         {
-            string d = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DisplayDeck");
+            string d = Environment.GetEnvironmentVariable("DISPLAYDECK_DATA");
+            if (string.IsNullOrEmpty(d))
+                d = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DisplayDeck");
             Directory.CreateDirectory(d);
             return d;
         }
@@ -157,7 +312,7 @@ namespace DisplayDeck
                 int code;
                 string o = RunHidden("netsh.exe", "advfirewall firewall show rule name=\"" + RuleName + "\" verbose", out code);
                 return code == 0 && o.IndexOf(NodePath(), StringComparison.OrdinalIgnoreCase) >= 0
-                    && o.IndexOf("8765", StringComparison.Ordinal) >= 0;
+                    && o.IndexOf(Port.ToString(), StringComparison.Ordinal) >= 0;
             }
             catch (Exception) { return false; }
         }
@@ -253,8 +408,8 @@ namespace DisplayDeck
         {
             try
             {
-                string dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DisplayDeck");
-                Directory.CreateDirectory(dir);
+                if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DISPLAYDECK_DATA"))) return; // a test copy must not touch the real startup entry
+                string dir = DataDir();
                 string flag = Path.Combine(dir, "firstrun.done");
                 if (File.Exists(flag)) return;
                 SetAutoStart(true);
@@ -440,10 +595,24 @@ namespace DisplayDeck
 
         string Http(string method, string path, int timeoutMs)
         {
+            return Http(method, path, timeoutMs, null);
+        }
+
+        string Http(string method, string path, int timeoutMs, string jsonBody)
+        {
             HttpWebRequest req = (HttpWebRequest)WebRequest.Create(url + path);
             req.Method = method;
             req.Timeout = timeoutMs;
-            if (method == "POST") req.ContentLength = 0;
+            if (method == "POST")
+            {
+                byte[] bytes = jsonBody == null ? new byte[0] : Encoding.UTF8.GetBytes(jsonBody);
+                req.ContentLength = bytes.Length;
+                if (bytes.Length > 0)
+                {
+                    req.ContentType = "application/json";
+                    using (Stream s = req.GetRequestStream()) s.Write(bytes, 0, bytes.Length);
+                }
+            }
             try
             {
                 using (WebResponse resp = req.GetResponse())
@@ -473,6 +642,8 @@ namespace DisplayDeck
         void Quit()
         {
             refreshTimer.Stop();
+            hotkeyTimer.Stop();
+            hotkeyWindow.UnregisterAll();
             icon.Visible = false;
             try { if (server != null && !server.HasExited) server.Kill(); } catch (Exception) { }
             icon.Dispose();

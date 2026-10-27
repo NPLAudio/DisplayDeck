@@ -28,6 +28,9 @@ It is free and made in spare time. If it saves you a few clicks, a [coffee](http
 - **Monitor controls.** A **Monitors** tab talks to the monitors themselves over their DisplayPort or HDMI cable
   (DDC/CI): switch a monitor's input (DisplayPort 1 or 2, HDMI 1 or 2), set brightness, contrast, speaker volume and
   mute, pick a color preset, and turn it on or off. It works from your phone too.
+- **Shortcuts, programs and extras.** Give a profile its own keyboard shortcut, have it start programs or scripts when it
+  is applied, and save HDR, Windows scaling and the wallpaper with it.
+- **Command line.** `DisplayDeckCli apply "Desk"` switches profiles from a shortcut, Task Scheduler or a game launcher.
 - **Undo.** Every layout change remembers the previous layout, so **Undo layout change** takes you back.
 - **Audio goes with the profile.** Give each profile a playback device and a spatial format (Off, Windows
   Sonic, Dolby Atmos, DTS, ...). Both switch together. The format list is read from the device itself, so
@@ -181,6 +184,33 @@ Good to know:
 - Some monitors answer unreliably, for example by repeating their last reply when asked for their power state. DisplayDeck double-checks what it can and hides a reading it cannot trust, but still offers the buttons if the monitor lists the feature.
 - Windows refuses to hand out controls for some NVIDIA-driven displays, so DisplayDeck talks to those through the graphics card directly. This uses a file the NVIDIA driver already provides; nothing extra is installed.
 
+### 8. Add a shortcut, programs and extras to a profile
+
+Expand a profile's card and press **Options** (on this PC). Everything here is applied whenever the profile is, from the card, the tray, a phone or a Stream Deck.
+
+1. **Keyboard shortcut.** Click the box and press the keys, for example Ctrl+Alt+1. The shortcut works anywhere in Windows while DisplayDeck is running. It needs Ctrl, Alt or Win, and a shortcut belongs to one profile. If another program already uses it, the card says so.
+2. **Run after applying.** Add programs or scripts (.exe, .lnk, .bat, .cmd, .ps1, .vbs, .js, .py or .ahk), with optional arguments. They start once the layout, extras and audio are in place, and DisplayDeck does not wait for them. Up to five.
+3. **Also save with this profile.** Set your screens up the way you want, tick what to keep, and press **Save**:
+   - **HDR**: on or off for each display that supports it.
+   - **Scaling**: the Windows scaling percentage of each display.
+   - **Wallpaper**: a picture for each display, a solid color or a slideshow, with how it fits. Windows Spotlight cannot be saved.
+   Use **Save again from now** to refresh something that is already saved.
+
+Anything that cannot be applied, for example a display that is not connected, is reported after the profile is applied and does not undo the layout. Duplicating a profile in the layout editor keeps its programs and extras, but not its shortcut.
+
+Running programs only ever comes from this PC: only a person at this PC can add or change them, but a profile applied from your phone, a Stream Deck or HomeKit starts the programs you chose.
+
+### 9. Switch profiles from the command line
+
+```
+DisplayDeckCli apply "Desk"
+DisplayDeckCli list
+DisplayDeckCli current
+DisplayDeckCli undo
+```
+
+`apply` ignores upper and lower case and starts DisplayDeck first if it is not running. It prints what went wrong, if anything, and sets the exit code: 0 worked, 1 failed, 2 unknown command or profile. The installer puts the tool on your PATH (open a new command prompt after installing); it also lives in `C:\Program Files\DisplayDeck\bin`. Point a desktop shortcut, a Task Scheduler task or a game launcher's "run before launch" at it.
+
 ## HomeKit (Homebridge)
 
 The [homebridge-displaydeck](https://github.com/NPLAudio/homebridge-displaydeck) plugin adds one HomeKit switch for every saved profile, so "Hey Siri, turn on Living Room" or a Home app automation can switch your screens and sound. The switches appear and disappear on their own as you add and delete profiles, and the active profile's switch reads on. It needs **Allow other devices (phone)** turned on, and the access key from the Phone page link. **Install and setup instructions: [NPLAudio/homebridge-displaydeck](https://github.com/NPLAudio/homebridge-displaydeck#install).**
@@ -223,13 +253,13 @@ Deck host and a stub DisplayDeck server, so nothing real is changed.
 - Phone access is opt-in. It listens on your network, requires a random 128-bit access key, and the firewall
   rule only admits machines on your own subnet. Do not forward the port to the internet; for access away
   from home use a VPN such as Tailscale.
-- Changing settings, deleting profiles and opening file dialogs are only allowed from the PC itself.
+- Changing settings, deleting profiles, choosing the programs a profile runs and opening file dialogs are only allowed from the PC itself.
 
 ## Settings and data
 
 | What | Where |
 | --- | --- |
-| Profiles, `names.json`, `*.audio.json` | `%APPDATA%\DisplayDeck\Profiles` (changeable under Settings) |
+| Profiles, `names.json`, `*.audio.json`, `*.options.json` | `%APPDATA%\DisplayDeck\Profiles` (changeable under Settings) |
 | Last applied, previous layout, phone key | `%LOCALAPPDATA%\DisplayDeck` |
 | Program files | `C:\Program Files\DisplayDeck` |
 

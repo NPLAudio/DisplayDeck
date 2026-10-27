@@ -189,6 +189,23 @@ namespace DisplayDeck.Ctl
             Check(Ddc.ConnectorName(10) == "displayport" && Ddc.ConnectorName(5) == "hdmi" && Ddc.ConnectorName(4) == "dvi" && Ddc.ConnectorName(0) == "vga" && Ddc.ConnectorName(99) == "other", "names the cable a display uses");
             Check(Ddc.IsBlocked(0x04) && Ddc.IsBlocked(0x08) && !Ddc.IsBlocked(0x60) && !Ddc.IsBlocked(0x10), "factory reset codes are blocked");
 
+            // extras: scaling steps, wallpaper colors and which live display a saved entry belongs to
+            int rec, cur, max;
+            Extras.StepsFromRelative(-2, 1, 4, out rec, out cur, out max);
+            Check(rec == 2 && cur == 3 && max == 6 && Extras.DpiSteps[rec] == 150 && Extras.DpiSteps[cur] == 175, "scaling steps are read relative to the recommended one");
+            Check(Extras.StepIndex(125) == 1 && Extras.StepIndex(130) == -1, "scaling percentages map to steps");
+            Check(Extras.FormatColor(Extras.ParseColor("#1e2f3a")) == "#1e2f3a" && Extras.ParseColor("#ff0000") == 0x0000FF, "wallpaper colors convert both ways");
+            Check(Throws(delegate { Extras.ParseColor("red"); }), "rejects a color that is not #rrggbb");
+            List<LiveInfo> liveSet = new List<LiveInfo>();
+            liveSet.Add(FakeLive(4353, 26934, 16296, true));
+            liveSet.Add(FakeLive(4356, 1, 1, true));
+            liveSet.Add(FakeLive(4400, 26934, 16296, false));
+            Check(Extras.Match(liveSet, 4356, "") == liveSet[1], "a saved display is found by its id");
+            Check(Extras.Match(liveSet, 9999, Extras.HwIdOf(liveSet[1])) == liveSet[1], "otherwise by its make and model when only one matches");
+            Check(Extras.Match(liveSet, 9999, "NOPE000") == null && Extras.Match(liveSet, 4400, "") == null, "a display that is off or unknown is not matched");
+            liveSet.Add(FakeLive(4500, 1, 1, true));
+            Check(Extras.Match(liveSet, 9999, Extras.HwIdOf(liveSet[1])) == null, "two displays of the same model are never guessed between");
+
             Dictionary<string, object> r = new Dictionary<string, object>();
             r["passed"] = passed;
             r["failed"] = new List<object>(failed.ToArray());
@@ -199,6 +216,18 @@ namespace DisplayDeck.Ctl
         class JavaScriptSerializerShim
         {
             public object Parse(string json) { return new System.Web.Script.Serialization.JavaScriptSerializer().DeserializeObject(json); }
+        }
+
+        static LiveInfo FakeLive(uint targetId, ushort maker, ushort product, bool active)
+        {
+            LiveInfo li = new LiveInfo();
+            li.Target = new LiveTarget();
+            li.Target.Path.targetInfo.id = targetId;
+            li.Target.Monitor = new MonitorInfo();
+            li.Target.Monitor.ManufactureId = maker;
+            li.Target.Monitor.ProductCodeId = product;
+            li.Active = active;
+            return li;
         }
 
         static bool Throws(Action a)

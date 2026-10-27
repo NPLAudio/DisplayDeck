@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { parseProfile, displayKey, layoutSignature } = require('./parser');
 const system = require('./system');
+const options = require('./options');
 
 const parseCache = new Map(); // file -> { mtimeMs, size, parsed, error }
 
@@ -102,6 +103,7 @@ async function buildProfiles(cfg) {
       displays: [],
       disabled: [],
       audio: audioRead.error ? { error: audioRead.error } : audioRead.value,
+      options: { ...options.summary(options.read(cfg, e.name)), hotkeyError: options.hotkeyProblem(e.name) },
       current: false,
       lastApplied: e.name === lastApplied,
     };

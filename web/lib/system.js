@@ -84,6 +84,24 @@ async function rememberLayout(cfg, file) {
   return ctl(cfg, ['display', 'remember', file]);
 }
 
+// ---- HDR, scaling and wallpaper saved with a profile ----
+
+// Reads the named sections ('hdr', 'dpi', 'wallpaper') from the displays that are on now.
+async function captureExtras(cfg, sections) {
+  return ctl(cfg, ['extras', 'capture', sections.join(',')], 60000);
+}
+
+// Puts saved extras back. Resolves to { applied: [...], skipped: [...] }.
+async function applyExtras(cfg, extras) {
+  const file = tmpFile('.json');
+  fs.writeFileSync(file, JSON.stringify(extras));
+  try {
+    return await ctl(cfg, ['extras', 'apply', file], 60000);
+  } finally {
+    fs.rm(file, { force: true }, () => {});
+  }
+}
+
 // ---- monitor controls (DDC/CI) ----
 
 // Reading every feature of every monitor takes a moment, so these get longer timeouts.
@@ -130,14 +148,14 @@ async function applyAudio(cfg, audio) {
 
 // ---- dialogs and names ----
 
-// Native folder dialog on this PC, brought to the front. Resolves to the chosen path, or null if cancelled.
-function pickPath({ initial = '', title = 'Choose a folder' } = {}) {
+// Native folder dialog (or file dialog with `file: true`) on this PC, brought to the front. Resolves to the chosen path, or null if cancelled.
+function pickPath({ initial = '', title = 'Choose a folder', file = false } = {}) {
   return new Promise((resolve, reject) => {
     execFile('powershell.exe',
       ['-NoProfile', '-NonInteractive', '-STA', '-ExecutionPolicy', 'Bypass', '-File', path.join(__dirname, 'pick-path.ps1')],
       {
         windowsHide: true, timeout: 5 * 60 * 1000, encoding: 'utf8',
-        env: { ...process.env, DD_INITIAL: initial, DD_TITLE: title },
+        env: { ...process.env, DD_INITIAL: initial, DD_TITLE: title, DD_MODE: file ? 'file' : 'folder' },
       },
       (err, stdout) => (err ? reject(new Error('Folder dialog failed: ' + err.message)) : resolve(stdout.trim() || null)));
   });
@@ -168,4 +186,4 @@ function edidName(hwId) {
   });
 }
 
-module.exports = { saveLiveXml, saveLayoutTo, applyProfile, undoLayout, connectedDisplays, ddcList, ddcCaps, ddcGet, ddcSet, buildLayout, validateProfile, rememberLayout, tmpFile, listPlaybackDevices, applyAudio, pickPath, edidName };
+module.exports = { saveLiveXml, saveLayoutTo, applyProfile, captureExtras, applyExtras, undoLayout, connectedDisplays, ddcList, ddcCaps, ddcGet, ddcSet, buildLayout, validateProfile, rememberLayout, tmpFile, listPlaybackDevices, applyAudio, pickPath, edidName };

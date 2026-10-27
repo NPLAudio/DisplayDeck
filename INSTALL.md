@@ -51,6 +51,14 @@ Press **New layout** on the Profiles page, or **Edit layout** on a card. Drag th
 
 Open the **Monitors** tab. Tap an input button (for example **HDMI 1**) to switch that monitor to it, or use the sliders for brightness, contrast and speaker volume. This needs DDC/CI, which most monitors support; if a monitor shows as **Not controllable**, look for a **DDC/CI** setting in its on-screen menu. TVs usually cannot be controlled this way.
 
+### Shortcuts, programs and extras (optional)
+
+On a card, press **Options**. Click the shortcut box and press the keys you want (for example Ctrl+Alt+1), add programs or scripts to start after the profile is applied, and tick **HDR**, **Scaling** or **Wallpaper** to save how your screens are set right now. Set the screens up first, then save. Windows Spotlight wallpaper cannot be saved; choose a picture, a color or a slideshow.
+
+### Switch profiles from the command line (optional)
+
+Open a new command prompt (so it sees the updated PATH) and run `DisplayDeckCli apply "Desk"`. `DisplayDeckCli list` shows your profile names. The same line works in a desktop shortcut, in Task Scheduler or as a game launcher's "run before launch" command.
+
 ## 3. Set up audio (optional)
 
 On any card press **Edit audio**, choose the playback device, choose the spatial format (the list shows what
@@ -196,6 +204,15 @@ DisplayDeck isn't running, or the profile or audio device it points at no longer
 **SmartScreen warns about the installer.**
 The MSI is not code-signed. Choose **More info**, then **Run anyway**.
 
+**A keyboard shortcut does nothing.**
+DisplayDeck must be running (the tray icon is there). The profile's card shows a warning when Windows refused the shortcut, usually because another program already uses it; pick a different one.
+
+**`DisplayDeckCli` is not recognized.**
+Open a new command prompt after installing, or run it by its full path, `C:\Program Files\DisplayDeck\bin\DisplayDeckCli.exe`.
+
+**HDR, scaling or wallpaper did not change.**
+The message after applying says which part and why: a display that is switched off, a display without HDR support, or a picture that was moved or deleted. Save the setting again from **Options** after changing it.
+
 **The tray icon is missing after install.**
 Start **DisplayDeck** from the Start menu. Only one copy runs at a time.
 
@@ -204,7 +221,7 @@ Start **DisplayDeck** from the Start menu. Only one copy runs at a time.
 | What | Where |
 | --- | --- |
 | Program | `C:\Program Files\DisplayDeck` |
-| Profiles, `names.json`, `*.audio.json` | `%APPDATA%\DisplayDeck\Profiles` |
+| Profiles, `names.json`, `*.audio.json`, `*.options.json` | `%APPDATA%\DisplayDeck\Profiles` |
 | Last applied, previous layout, phone key | `%LOCALAPPDATA%\DisplayDeck` |
 
 To see what the installer did, run it from a terminal with logging:

@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const { buildProfiles, scanFiles, writeLastApplied, currentStatus } = require('./lib/profiles');
 const editor = require('./lib/editor');
+const options = require('./lib/options');
 const monitors = require('./lib/monitors');
 const system = require('./lib/system');
 const { createConfig } = require('./lib/settings');
@@ -173,6 +174,7 @@ async function handle(req, res) {
     const picked = await system.pickPath({
       initial: typeof body.initial === 'string' ? body.initial : '',
       title: typeof body.title === 'string' ? body.title.slice(0, 200) : undefined,
+      file: body.file === true,
     });
     return send(res, 200, { path: picked });
   }
@@ -204,7 +206,15 @@ async function handle(req, res) {
     const entry = scanFiles(cfg).find((f) => f.name === name); // only names that exist on disk
     if (!entry) return send(res, 404, { error: `No such profile: ${name}` });
     const layout = await system.applyProfile(cfg, entry.file);
-    const result = { ok: true, audio: 'none', warnings: layout.skipped || [] };
+    const result = { ok: true, audio: 'none', warnings: [...(layout.skipped || [])] };
+    const opts = options.read(cfg, name);
+    if (Object.keys(opts.extras).length) {
+      // HDR, scaling and wallpaper. A problem here is reported but does not undo the layout.
+      try {
+        const x = await system.applyExtras(cfg, opts.extras);
+        result.warnings.push(...(x.skipped || []));
+      } catch (e) { result.warnings.push(`HDR, scaling or wallpaper: ${e.message}`); }
+    }
     try {
       const a = JSON.parse(fs.readFileSync(path.join(cfg.profilesDir, `${name}.audio.json`), 'utf8').replace(/^﻿/, ''));
       await system.applyAudio(cfg, a);
@@ -213,7 +223,37 @@ async function handle(req, res) {
       if (e.code !== 'ENOENT') { result.audio = 'failed'; result.audioError = e.message; }
     }
     writeLastApplied(cfg, name);
+    if (opts.run.length) {
+      result.ran = opts.run.length;
+      result.runErrors = await options.runPrograms(opts.run);
+    }
     return send(res, 200, result);
+  }
+
+  // Keyboard shortcuts for profiles. The tray reads the list to register them and says which ones Windows refused.
+  if (req.method === 'GET' && url.pathname === '/api/hotkeys') {
+    return send(res, 200, { hotkeys: options.allHotkeys(cfg, scanFiles(cfg).map((f) => f.name)) });
+  }
+  if (req.method === 'POST' && url.pathname === '/api/hotkeys/report') {
+    if (!local) return send(res, 403, { error: 'Only the DisplayDeck app on this PC can report shortcuts.' });
+    if (!sameOrigin(req)) return send(res, 403, { error: 'Cross-origin request refused' });
+    const body = await readBody(req);
+    options.reportHotkeys(body.failed);
+    return send(res, 200, { ok: true });
+  }
+
+  // A profile's shortcut, programs to run and saved HDR, scaling and wallpaper. A program path ends up being
+  // executed, so only this PC may change them.
+  const opt = /^\/api\/options\/(.+)$/.exec(url.pathname);
+  if (req.method === 'POST' && opt) {
+    if (!local) return send(res, 403, { error: 'Profile options can only be changed on the PC running DisplayDeck.' });
+    if (!sameOrigin(req)) return send(res, 403, { error: 'Cross-origin request refused' });
+    const name = decodeURIComponent(opt[1]);
+    const names = scanFiles(cfg).map((f) => f.name);
+    if (!names.includes(name)) return send(res, 404, { error: `No such profile: ${name}` });
+    try {
+      return send(res, 200, await options.update(cfg, name, await readBody(req), system, names));
+    } catch (e) { return send(res, e.status || 500, { error: e.message }); }
   }
   if (req.method === 'POST' && url.pathname === '/api/undo-layout') {
     if (!sameOrigin(req)) return send(res, 403, { error: 'Cross-origin request refused' });
@@ -294,6 +334,7 @@ async function handle(req, res) {
     if (!entry) return send(res, 404, { error: `No such profile: ${name}` });
     fs.rmSync(entry.file, { force: true });
     fs.rmSync(path.join(cfg.profilesDir, `${name}.audio.json`), { force: true });
+    options.remove(cfg, name);
     return send(res, 200, { ok: true });
   }
 
@@ -302,7 +343,7 @@ async function handle(req, res) {
 
 // File names must stay inside the profiles folder: no separators, no reserved characters.
 function validProfileName(name) {
-  return /^[^\\/:*?"<>|\x00-\x1f]{1,60}$/.test(name) && !/[. ]$/.test(name) && !/\.audio$/i.test(name) && name !== '.' && name !== '..';
+  return /^[^\\/:*?"<>|\x00-\x1f]{1,60}$/.test(name) && !/[. ]$/.test(name) && !/\.(audio|options)$/i.test(name) && name !== '.' && name !== '..';
 }
 
 // When launched by the tray app, exit if it goes away so no orphan server is left behind.

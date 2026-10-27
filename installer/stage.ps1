@@ -14,11 +14,15 @@ $csc = 'C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe'
     /r:System.Windows.Forms.dll /r:System.Drawing.dll /r:System.Web.Extensions.dll "$repo\tray\Tray.cs"
 if ($LASTEXITCODE -ne 0) { throw 'Tray compile failed' }
 
+# The command-line tool (DisplayDeckCli apply "Desk"). It is a console program so scripts can wait for it and read its exit code.
+& $csc /nologo /target:exe /out:"$here\build\DisplayDeckCli.exe" /r:System.Web.Extensions.dll "$repo\cli\Cli.cs"
+if ($LASTEXITCODE -ne 0) { throw 'Command-line tool compile failed' }
+
 # The Windows helper (display layouts, audio devices); build.ps1 also runs its self-test.
 & "$repo\ctl\build.ps1" -Out "$here\build\DisplayDeckCtl.exe"
 
 Copy-Item "$here\build\DisplayDeck.exe", "$here\app.ico" $stage
-Copy-Item "$here\build\DisplayDeckCtl.exe" "$stage\bin"
+Copy-Item "$here\build\DisplayDeckCtl.exe", "$here\build\DisplayDeckCli.exe" "$stage\bin"
 Copy-Item $NodeExe "$stage\node\node.exe"
 Copy-Item "$repo\web\server.js", "$repo\web\package.json", "$repo\web\README.md" "$stage\web"
 Copy-Item "$repo\web\lib", "$repo\web\public" "$stage\web" -Recurse
@@ -43,7 +47,7 @@ if (-not (Test-Path $nodeLicense)) { throw "Node's LICENSE not found next to $No
 Copy-Item $nodeLicense "$stage\licenses\node-LICENSE.txt"
 
 # Only our own executables and the Node runtime may ship. Anything else is a packaging mistake.
-$expected = 'DisplayDeck.exe', 'bin\DisplayDeckCtl.exe', 'node\node.exe'
+$expected = 'DisplayDeck.exe', 'bin\DisplayDeckCtl.exe', 'bin\DisplayDeckCli.exe', 'node\node.exe'
 $found = Get-ChildItem $stage -Recurse -File | Where-Object { $_.Extension -match '^\.(exe|dll|chm|sys|msi)$' } |
     ForEach-Object { $_.FullName.Substring($stage.Length + 1) }
 $unexpected = $found | Where-Object { $expected -notcontains $_ }

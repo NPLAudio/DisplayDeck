@@ -76,6 +76,46 @@
   </form>
 </dialog>
 
+<dialog id="optDlg" class="wide">
+  <form method="dialog" id="optForm">
+    <h2 id="optTitle">Options</h2>
+    <p class="card-description">Extra things that happen with this profile.</p>
+
+    <div class="opt-section">
+      <h3>Keyboard shortcut</h3>
+      <div class="field-row">
+        <input class="input" id="optHotkey" readonly placeholder="Click here, then press the keys" autocomplete="off">
+        <button type="button" class="btn outline" id="optHotkeyClear">Clear</button>
+      </div>
+      <p class="muted small">Works anywhere in Windows while DisplayDeck is running. Include Ctrl, Alt or Win.</p>
+    </div>
+
+    <div class="opt-section">
+      <h3>Run after applying</h3>
+      <div id="optRun" class="stack"></div>
+      <button type="button" class="btn outline sm" id="optRunAdd">Add program or script</button>
+      <p class="muted small">Starts when the profile is applied from anywhere, including the shortcut, a phone or a Stream Deck.</p>
+    </div>
+
+    <div class="opt-section">
+      <h3>Also save with this profile</h3>
+      <p class="muted small" style="margin-top:0">Set your screens up the way you want first. These save how they are right now.</p>
+      <div id="optExtras" class="stack"></div>
+    </div>
+
+    <div class="opt-section">
+      <h3>From the command line</h3>
+      <div class="mono" id="optCmd"></div>
+    </div>
+
+    <p id="optMsg" class="status err" role="status"></p>
+    <div class="dialog-footer">
+      <button type="button" class="btn outline" id="optCancel">Cancel</button>
+      <button type="submit" class="btn" id="optSave">Save</button>
+    </div>
+  </form>
+</dialog>
+
 <script src="/app.js"></script>
 <script>
 const state = { liveMatched: false, profiles: [], busy: false, canEdit: false, devices: [] };
@@ -120,7 +160,19 @@ function summaryOf(p) {
   const primary = p.displays.find((d) => d.primary) || p.displays[0];
   const res = primary ? ` · ${fmtRes(primary)}${fmtHz(primary.refreshHz)}` : '';
   const a = p.audio && !p.audio.error ? p.audio : null;
-  return names + res + (a && (a.label || a.device) ? ` · ${a.label || 'Audio set'}` : '');
+  return names + res + (a && (a.label || a.device) ? ` · ${a.label || 'Audio set'}` : '') + (p.options && p.options.hotkey ? ` · ${p.options.hotkey}` : '');
+}
+
+// "Ctrl+Alt+1 · Runs 2 programs · HDR, scaling, wallpaper" for the card; empty when the profile has none of it.
+function optionsLine(p) {
+  const o = p.options;
+  if (!o) return '';
+  const parts = [];
+  if (o.hotkey) parts.push(o.hotkey);
+  if (o.run.length) parts.push(o.run.length === 1 ? 'Runs 1 program' : `Runs ${o.run.length} programs`);
+  const saved = [o.extras.hdr ? 'HDR' : null, o.extras.dpi ? 'scaling' : null, o.extras.wallpaper ? 'wallpaper' : null].filter(Boolean);
+  if (saved.length) parts.push('Saves ' + saved.join(', '));
+  return parts.join(' · ');
 }
 
 function profileCard(p) {
@@ -155,6 +207,13 @@ function profileCard(p) {
   body.append(el('div', { class: 'row between' },
     el('span', { class: 'row muted grow', style: 'min-width:0' }, icon('volume'), el('span', {}, audioText)),
     el('button', { class: 'btn outline sm', type: 'button', onclick: () => openAudio(p) }, 'Edit audio')));
+  const extrasLine = optionsLine(p);
+  body.append(el('div', { class: 'row between' },
+    el('span', { class: 'row muted grow', style: 'min-width:0' }, icon('sliders'), el('span', {}, extrasLine || 'No shortcut, programs or extras')),
+    state.canEdit ? el('button', { class: 'btn outline sm', type: 'button', onclick: () => openOptions(p) }, 'Options') : null));
+  if (p.options && p.options.hotkeyError) {
+    body.append(el('div', { class: 'alert warn' }, icon('alert'), `The shortcut ${p.options.hotkey} is not active: ${p.options.hotkeyError}`));
+  }
   if (state.canEdit) {
     body.append(el('div', { class: 'row', style: 'flex-wrap:wrap' },
       el('a', { class: 'btn outline sm', href: '/editor?from=' + encodeURIComponent(p.name) }, icon('layout'), 'Edit layout'),
@@ -215,8 +274,9 @@ async function applyProfile(name, card) {
   try {
     const r = await postJson('/api/apply/' + encodeURIComponent(name));
     await loadProfiles();
-    setStatus(`Applied ${name}.` + (r.warnings && r.warnings.length ? ' ' + r.warnings.join('; ') + '.' : '') + (r.audio === 'failed' ? ` Audio failed: ${r.audioError}` : ''),
-      r.warnings && r.warnings.length ? '' : 'ok');
+    const problems = [...(r.warnings || []), ...(r.runErrors || [])];
+    setStatus(`Applied ${name}.` + (problems.length ? ' ' + problems.join('; ') + '.' : '') + (r.audio === 'failed' ? ` Audio failed: ${r.audioError}` : ''),
+      problems.length ? '' : 'ok');
   } catch (e) { setStatus(`Apply failed: ${e.message}`, 'err'); }
   state.busy = false; card.classList.remove('busy');
 }
@@ -301,6 +361,101 @@ const dlgBody = () => {
 $('dlgSave').addEventListener('click', () => saveAudio(dlgBody(), false));
 $('dlgApply').addEventListener('click', () => saveAudio(dlgBody(), true));
 $('dlgClear').addEventListener('click', () => saveAudio({ clear: true }, false));
+
+// ---------- options: shortcut, programs to run, saved HDR / scaling / wallpaper ----------
+const EXTRAS = [
+  ['hdr', 'HDR', 'Turn HDR on or off for each display'],
+  ['dpi', 'Scaling', 'The Windows scaling percentage of each display'],
+  ['wallpaper', 'Wallpaper', 'Picture, color or slideshow (Windows Spotlight cannot be saved)'],
+];
+let opt = null; // { profile, hotkey, run: [{path, args}], extras: { key: { on, stored, update } } }
+
+function keyName(e) {
+  const c = e.code;
+  if (/^Key[A-Z]$/.test(c)) return c.slice(3);
+  if (/^Digit\d$/.test(c)) return c.slice(5);
+  if (/^F([1-9]|1\d|2[0-4])$/.test(c)) return c;
+  if (/^Numpad\d$/.test(c)) return c;
+  return { ArrowUp: 'Up', ArrowDown: 'Down', ArrowLeft: 'Left', ArrowRight: 'Right', Home: 'Home', End: 'End', PageUp: 'PageUp', PageDown: 'PageDown', Insert: 'Insert', Delete: 'Delete', Space: 'Space' }[c] || null;
+}
+$('optHotkey').addEventListener('keydown', (e) => {
+  if (e.key === 'Tab' || e.key === 'Escape') return; // let the person leave the field
+  e.preventDefault();
+  if ((e.key === 'Backspace' || e.key === 'Delete') && !e.ctrlKey && !e.altKey && !e.metaKey) { opt.hotkey = ''; $('optHotkey').value = ''; return; }
+  const key = keyName(e);
+  if (!key) return; // a modifier on its own, or a key that cannot be used
+  opt.hotkey = [e.ctrlKey && 'Ctrl', e.altKey && 'Alt', e.shiftKey && 'Shift', e.metaKey && 'Win', key].filter(Boolean).join('+');
+  $('optHotkey').value = opt.hotkey;
+});
+$('optHotkeyClear').addEventListener('click', () => { opt.hotkey = ''; $('optHotkey').value = ''; });
+
+function renderRun() {
+  $('optRun').replaceChildren(...opt.run.map((r, i) => el('div', { class: 'field' },
+    el('div', { class: 'field-row' },
+      el('input', { class: 'input', value: r.path, placeholder: 'C:\\Path\\to\\program.exe', 'aria-label': 'Program or script', oninput: (e) => { r.path = e.target.value; } }),
+      el('button', { type: 'button', class: 'btn outline', onclick: async () => {
+        try {
+          const { path } = await postJson('/api/pick-path', { file: true, initial: r.path, title: 'Choose a program or script' });
+          if (path) { r.path = path; renderRun(); }
+        } catch (e) { $('optMsg').textContent = e.message; }
+      } }, 'Browse'),
+      el('button', { type: 'button', class: 'btn ghost destructive icon sm', 'aria-label': 'Remove', onclick: () => { opt.run.splice(i, 1); renderRun(); } }, icon('trash'))),
+    el('input', { class: 'input', value: r.args, placeholder: 'Arguments (optional)', style: 'margin-top:8px', 'aria-label': 'Arguments', oninput: (e) => { r.args = e.target.value; } }))));
+  $('optRunAdd').hidden = opt.run.length >= 5;
+}
+$('optRunAdd').addEventListener('click', () => { opt.run.push({ path: '', args: '' }); renderRun(); });
+
+function renderExtras() {
+  $('optExtras').replaceChildren(...EXTRAS.map(([key, label, hint]) => {
+    const x = opt.extras[key];
+    const box = el('input', { type: 'checkbox', id: 'opt-' + key, checked: x.on, onchange: (e) => { x.on = e.target.checked; if (!x.on) x.update = false; renderExtras(); } });
+    const status = !x.on ? '' : x.update ? 'Will be saved from the screens as they are now.' : x.stored ? 'Saved. ' : 'Will be saved from the screens as they are now.';
+    return el('div', { class: 'check' },
+      box,
+      el('label', { for: 'opt-' + key }, el('strong', {}, label), el('span', { class: 'muted small' }, hint)),
+      x.on && x.stored ? el('button', { type: 'button', class: 'btn outline sm', onclick: () => { x.update = !x.update; renderExtras(); } }, x.update ? 'Keep saved' : 'Save again from now') : null,
+      status && !(x.stored && !x.update) ? el('span', { class: 'muted small check-note' }, status) : null);
+  }));
+}
+
+function openOptions(p) {
+  const o = p.options || { hotkey: '', run: [], extras: {} };
+  opt = {
+    profile: p.name,
+    hotkey: o.hotkey || '',
+    run: o.run.map((r) => ({ path: r.path, args: r.args })),
+    extras: {
+      hdr: { stored: o.extras.hdr > 0, on: o.extras.hdr > 0, update: false },
+      dpi: { stored: o.extras.dpi > 0, on: o.extras.dpi > 0, update: false },
+      wallpaper: { stored: !!o.extras.wallpaper, on: !!o.extras.wallpaper, update: false },
+    },
+  };
+  $('optTitle').textContent = 'Options for ' + p.name;
+  $('optMsg').textContent = '';
+  $('optHotkey').value = opt.hotkey;
+  $('optCmd').textContent = `DisplayDeckCli apply "${p.name}"`;
+  renderRun(); renderExtras();
+  $('optDlg').showModal();
+}
+$('optCancel').addEventListener('click', () => $('optDlg').close());
+$('optForm').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  const extras = {};
+  for (const [key] of EXTRAS) {
+    const x = opt.extras[key];
+    if (!x.on && x.stored) extras[key] = 'remove';
+    else if (x.on && (!x.stored || x.update)) extras[key] = 'capture';
+  }
+  $('optMsg').textContent = '';
+  $('optSave').disabled = true;
+  try {
+    const r = await postJson('/api/options/' + encodeURIComponent(opt.profile), { hotkey: opt.hotkey, run: opt.run.filter((r) => r.path.trim()), extras });
+    $('optDlg').close();
+    await loadProfiles();
+    setStatus(`Saved options for ${opt.profile}.` + (r.notes && r.notes.length ? ' ' + r.notes.join(' ') : ''), 'ok');
+  } catch (e) { $('optMsg').textContent = e.message; }
+  $('optSave').disabled = false;
+});
 
 // ---------- save the current layout / undo ----------
 function openSave() {

@@ -26,9 +26,18 @@ $owner.Show()
 [void][DdFront]::SetForegroundWindow($owner.Handle)
 $owner.Activate()
 
-$dlg = New-Object System.Windows.Forms.FolderBrowserDialog
-$dlg.Description = if ($env:DD_TITLE) { $env:DD_TITLE } else { 'Choose a folder' }
-$dlg.ShowNewFolderButton = $true
-if ($env:DD_INITIAL -and (Test-Path -LiteralPath $env:DD_INITIAL -PathType Container)) { $dlg.SelectedPath = $env:DD_INITIAL }
-if ($dlg.ShowDialog($owner) -eq [System.Windows.Forms.DialogResult]::OK) { [Console]::Out.Write($dlg.SelectedPath) }
+if ($env:DD_MODE -eq 'file') {
+    # DD_MODE=file picks a program or script instead of a folder.
+    $dlg = New-Object System.Windows.Forms.OpenFileDialog
+    $dlg.Title = if ($env:DD_TITLE) { $env:DD_TITLE } else { 'Choose a file' }
+    $dlg.Filter = 'Programs and scripts|*.exe;*.lnk;*.bat;*.cmd;*.ps1;*.vbs;*.js;*.py;*.ahk|All files|*.*'
+    if ($env:DD_INITIAL -and (Test-Path -LiteralPath $env:DD_INITIAL -PathType Leaf)) { $dlg.FileName = $env:DD_INITIAL }
+    if ($dlg.ShowDialog($owner) -eq [System.Windows.Forms.DialogResult]::OK) { [Console]::Out.Write($dlg.FileName) }
+} else {
+    $dlg = New-Object System.Windows.Forms.FolderBrowserDialog
+    $dlg.Description = if ($env:DD_TITLE) { $env:DD_TITLE } else { 'Choose a folder' }
+    $dlg.ShowNewFolderButton = $true
+    if ($env:DD_INITIAL -and (Test-Path -LiteralPath $env:DD_INITIAL -PathType Container)) { $dlg.SelectedPath = $env:DD_INITIAL }
+    if ($dlg.ShowDialog($owner) -eq [System.Windows.Forms.DialogResult]::OK) { [Console]::Out.Write($dlg.SelectedPath) }
+}
 $owner.Dispose()

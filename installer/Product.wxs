@@ -13,6 +13,8 @@
       <Directory Id="INSTALLFOLDER" Name="DisplayDeck">
         <Component Id="TrayExe" Guid="*">
           <File Id="TrayExeFile" Source="stage\DisplayDeck.exe" KeyPath="yes" />
+          <!-- So `DisplayDeckCli apply "Desk"` works from any new command prompt or script. -->
+          <Environment Id="DisplayDeckPath" Name="PATH" Value="[INSTALLFOLDER]bin" Action="set" Part="last" System="yes" Permanent="no" />
         </Component>
       </Directory>
     </StandardDirectory>

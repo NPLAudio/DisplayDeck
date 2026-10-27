@@ -27,6 +27,24 @@ public static class FakeCtl
             return 0;
         }
         if (g == "display" && (c == "remember" || c == "undo")) { Console.Write("{\"ok\":true,\"skipped\":[]}"); return 0; }
+        if (g == "extras" && c == "capture")
+        {
+            string want = a.Length > 2 ? a[2] : "";
+            string nothing = Environment.GetEnvironmentVariable("FAKE_NO_HDR");
+            System.Collections.Generic.List<string> parts = new System.Collections.Generic.List<string>();
+            if (want.Contains("hdr") && string.IsNullOrEmpty(nothing)) parts.Add("\"hdr\":[{\"targetId\":4353,\"hwId\":\"MSI3FA8\",\"name\":\"MPG 491C OLED\",\"enabled\":true}]");
+            if (want.Contains("dpi")) parts.Add("\"dpi\":[{\"targetId\":4353,\"hwId\":\"MSI3FA8\",\"name\":\"MPG 491C OLED\",\"percent\":125}]");
+            if (want.Contains("wallpaper")) parts.Add("\"wallpaper\":{\"mode\":\"picture\",\"position\":\"fill\",\"color\":\"#000000\",\"monitors\":[{\"targetId\":4353,\"hwId\":\"MSI3FA8\",\"name\":\"MPG 491C OLED\",\"path\":\"C:\\\\Pictures\\\\a.jpg\"}]}");
+            string notes = want.Contains("hdr") && !string.IsNullOrEmpty(nothing) ? "\"None of the displays that are on support HDR, so no HDR setting was saved.\"" : "";
+            Console.Write("{" + string.Join(",", parts.ToArray()) + (parts.Count > 0 ? "," : "") + "\"notes\":[" + notes + "]}");
+            return 0;
+        }
+        if (g == "extras" && c == "apply")
+        {
+            if (Environment.GetEnvironmentVariable("FAKE_EXTRAS_FAIL") == "1") { Console.Write("{\"error\":\"Windows would not change the scaling (error 5).\"}"); return 1; }
+            Console.Write("{\"ok\":true,\"applied\":[\"MPG 491C OLED scaling 125%\"],\"skipped\":[\"C49RG9x is not on, so its HDR setting was left alone.\"]}");
+            return 0;
+        }
         if (g == "ddc" && c == "list")
         {
             Console.Write("{\"monitors\":[" +

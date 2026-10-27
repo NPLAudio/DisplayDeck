@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const { parseProfile, displayKey } = require('./parser');
 const system = require('./system');
+const options = require('./options');
 const { scanFiles, displayName, readJson } = require('./profiles');
 
 const MIN_TEST_SECONDS = Number(process.env.EDITOR_MIN_SECONDS) || 5;
@@ -269,6 +270,7 @@ async function save(cfg, { name, layout, base, overwrite, copyAudioFrom }, valid
       const from = path.join(cfg.profilesDir, `${copyAudioFrom}.audio.json`);
       const to = path.join(cfg.profilesDir, `${name}.audio.json`);
       if (from !== to && fs.existsSync(from) && !fs.existsSync(to)) fs.copyFileSync(from, to);
+      options.copy(cfg, copyAudioFrom, name); // programs and extras come along; the shortcut does not
     }
     return { ok: true, name, displays: built.displays };
   } finally {

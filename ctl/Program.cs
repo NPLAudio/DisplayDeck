@@ -5,6 +5,8 @@
 //   display connected                       connected displays with the modes each supports
 //   display build <layout.json> <out.xml> [template.xml ...]
 //   display remember <file.xml>             make this layout the one "undo" returns to
+//   extras capture <hdr,dpi,wallpaper>      read HDR, scaling and wallpaper from the displays that are on
+//   extras apply <extras.json>              put captured extras back
 //   ddc list                                monitors that answer DDC/CI, with their current settings
 //   ddc caps <targetId>                     the capabilities string and what it lists
 //   ddc get <targetId> <code>               read one feature (code in hex, for example 0x60)
@@ -314,6 +316,31 @@ namespace DisplayDeck.Ctl
             {
                 if (!File.Exists(PreviousFile())) throw new CtlException("There is no earlier layout to go back to.");
                 return ApplyFile(File.ReadAllText(PreviousFile()), false);
+            }
+
+            if (group == "extras" && cmd == "capture")
+            {
+                // extras capture <hdr,dpi,wallpaper>
+                List<string> sections = new List<string>();
+                foreach (string s in Arg(args, 2, "sections").Split(','))
+                {
+                    string t = s.Trim().ToLowerInvariant();
+                    if (t != Extras.HdrSection && t != Extras.DpiSection && t != Extras.WallpaperSection)
+                        throw new CtlException("Unknown extra: " + t);
+                    if (!sections.Contains(t)) sections.Add(t);
+                }
+                List<object> notes = new List<object>();
+                r = Extras.Capture(sections, notes);
+                r["notes"] = notes;
+                return r;
+            }
+            if (group == "extras" && cmd == "apply")
+            {
+                JavaScriptSerializer js = new JavaScriptSerializer();
+                js.MaxJsonLength = int.MaxValue;
+                Dictionary<string, object> extras = js.DeserializeObject(File.ReadAllText(Arg(args, 2, "extras file"))) as Dictionary<string, object>;
+                if (extras == null) throw new CtlException("The saved extras could not be read.");
+                return Extras.Apply(extras);
             }
 
             if (group == "ddc") return DdcCommand(cmd, args);
