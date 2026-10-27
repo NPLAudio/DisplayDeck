@@ -86,6 +86,7 @@
       <div class="field">
         <label class="label" for="nameIn">Profile name</label>
         <input class="input" id="nameIn" autocomplete="off" spellcheck="false" maxlength="60" placeholder="For example: Desk">
+        <p id="nameHint" class="muted small" style="margin:6px 0 0" hidden></p>
       </div>
       <p id="msg" class="status" role="status"></p>
       <div class="row" style="flex-wrap:wrap">
@@ -105,9 +106,10 @@
   .grid2 .field + .field { margin-top: 0; }
   @media (max-width: 520px) { .grid2 { grid-template-columns: 1fr; } }
   .container.wide { max-width: 860px; }
-  .canvas-wrap { border: 1px dashed hsl(var(--border)); border-radius: var(--radius); background: hsl(var(--muted) / .4); touch-action: none; user-select: none; -webkit-user-select: none; }
+  .canvas-wrap { border: 1px dashed hsl(var(--border)); border-radius: var(--radius); background: hsl(var(--muted) / .4); user-select: none; -webkit-user-select: none; }
   svg.editor { display: block; width: 100%; height: auto; }
-  svg.editor g.tile { cursor: grab; outline: none; }
+  /* Only the screens capture touch, so a finger or pen can still scroll the page from the empty parts of the canvas. */
+  svg.editor g.tile { cursor: grab; outline: none; touch-action: none; }
   svg.editor g.tile.dragging { cursor: grabbing; }
   svg.editor .mon { fill: hsl(var(--secondary)); stroke: hsl(var(--border)); stroke-width: 2; }
   svg.editor g.tile.sel .mon { stroke: hsl(var(--primary)); stroke-width: 3; }
@@ -153,8 +155,9 @@ async function load() {
     ed.selected = (on().find((d) => d.primary) || on()[0] || ed.displays[0] || {}).key || null;
     if (!ed.displays.some((d) => d.enabled)) ed.selected = null;
     fillStart();
-    if (from && !$('nameIn').value) $('nameIn').value = `${from} copy`;
+    if (from && !$('nameIn').value) $('nameIn').value = from; // editing a saved layout: saving replaces it, a new name makes a copy
     paint();
+    syncSaveUi();
     if (ed.test) startCountdown(ed.test.secondsLeft);
   } catch (e) {
     $('notice').hidden = false;
@@ -457,6 +460,29 @@ $('revertBtn').addEventListener('click', async () => {
   try { await postJson('/api/editor/revert'); say('Went back to your previous layout.', ''); } catch (e) { say(e.message, 'err'); }
 });
 
+// The saved profile the name field points at, if any (names are not case sensitive on Windows).
+const existingNamed = () => {
+  const n = $('nameIn').value.trim().toLowerCase();
+  return n ? ed.profiles.find((p) => p.toLowerCase() === n) || null : null;
+};
+function syncSaveUi() {
+  const hit = existingNamed();
+  const editing = hit && ed.baseName && hit.toLowerCase() === ed.baseName.toLowerCase();
+  $('saveBtn').textContent = editing ? 'Save changes' : hit ? `Replace “${hit}”` : 'Save profile';
+  $('nameHint').hidden = !ed.baseName;
+  $('nameHint').textContent = editing
+    ? `You are editing “${ed.baseName}”. Save changes replaces it and keeps its audio, shortcut and extras. Change the name to save a copy instead.`
+    : ed.baseName ? `Saving under a new name keeps “${ed.baseName}” as it is.` : '';
+}
+$('nameIn').addEventListener('input', syncSaveUi);
+
+async function saveClicked() {
+  const hit = existingNamed();
+  const editing = hit && ed.baseName && hit.toLowerCase() === ed.baseName.toLowerCase();
+  if (hit && !editing && !confirm(`Replace the saved profile “${hit}”?`)) return;
+  await save(!!hit);
+}
+
 async function save(overwrite) {
   const name = $('nameIn').value.trim();
   $('replaceBtn').hidden = true;
@@ -472,9 +498,9 @@ async function save(overwrite) {
     }
   });
 }
-$('saveBtn').addEventListener('click', () => save(false));
+$('saveBtn').addEventListener('click', saveClicked);
 $('replaceBtn').addEventListener('click', () => save(true));
-$('nameIn').addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); save(false); } });
+$('nameIn').addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); saveClicked(); } });
 window.addEventListener('beforeunload', (ev) => { if (ed.dirty) { ev.preventDefault(); ev.returnValue = ''; } });
 
 renderShell('profiles').then((s) => {
