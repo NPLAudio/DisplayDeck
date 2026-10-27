@@ -64,6 +64,23 @@ public static class FakeCtl
         }
         if (g == "ddc" && c == "get") { Console.Write("{\"code\":" + Convert.ToInt32(a[3].Replace("0x", ""), 16) + ",\"current\":70,\"max\":100}"); return 0; }
         if (g == "ddc" && c == "set") { Console.Write("{\"ok\":true}"); return 0; }
+        if (g == "audio" && c == "default")
+        {
+            // FAKE_AUDIO_MISSING_FILE holds how many more times the device should be reported as not there yet.
+            string missing = Environment.GetEnvironmentVariable("FAKE_AUDIO_MISSING_FILE");
+            if (!string.IsNullOrEmpty(missing) && File.Exists(missing))
+            {
+                int left = int.Parse(File.ReadAllText(missing).Trim());
+                if (left > 0)
+                {
+                    File.WriteAllText(missing, (left - 1).ToString());
+                    Console.Write("{\"error\":\"No active playback device matches: " + (a.Length > 2 ? a[2] : "") + "\"}");
+                    return 1;
+                }
+            }
+            Console.Write("{\"ok\":true}");
+            return 0;
+        }
         if (g == "audio" && c == "list")
         {
             Console.Write("{\"devices\":[{\"id\":\"Studio\\\\Device\\\\Main Out\\\\Render\",\"name\":\"Main Out 1-2\",\"adapter\":\"Studio Interface\",\"isDefault\":true,\"spatialGuid\":\"\",\"formats\":[]}]}");

@@ -137,10 +137,24 @@ async function listPlaybackDevices(cfg) {
   }));
 }
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const DEVICE_MISSING = /No active playback device matches/;
+
 // Switches the default playback device, then (when the profile says so) its spatial format.
-async function applyAudio(cfg, audio) {
+// `waitMs` keeps looking for a device that has not shown up yet. Right after a layout change, the sound device of a
+// display (an HDMI or DisplayPort output) can take a few seconds to appear, and asking too early finds nothing.
+async function applyAudio(cfg, audio, { waitMs = 0 } = {}) {
   if (!audio || !audio.device) return;
-  await ctl(cfg, ['audio', 'default', audio.device]);
+  const deadline = Date.now() + waitMs;
+  for (;;) {
+    try {
+      await ctl(cfg, ['audio', 'default', audio.device]);
+      break;
+    } catch (e) {
+      if (!DEVICE_MISSING.test(e.message) || Date.now() >= deadline) throw e;
+      await sleep(Math.min(750, Math.max(0, deadline - Date.now())));
+    }
+  }
   if (typeof audio.spatial === 'string') {
     await ctl(cfg, ['audio', 'spatial', audio.device, audio.spatial], 120000); // may wait on a UAC prompt
   }

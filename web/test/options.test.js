@@ -263,3 +263,49 @@ test('system.js passes the extras to the helper as a file', { skip }, async () =
   assert.match(fs.readFileSync(log, 'utf8'), /extras\|capture\|hdr,dpi/);
   delete process.env.FAKE_CTL_LOG;
 });
+
+// ---------- the sound device of a display shows up a moment after the layout changes ----------
+
+function missingFor(times) {
+  const f = path.join(work, `missing-${Math.random().toString(36).slice(2)}.txt`);
+  fs.writeFileSync(f, String(times));
+  return f;
+}
+
+test('audio waits for a device that has not appeared yet, then switches', { skip }, async () => {
+  const log = path.join(work, 'audio-calls.log');
+  fs.rmSync(log, { force: true });
+  process.env.FAKE_CTL_LOG = log;
+  process.env.FAKE_AUDIO_MISSING_FILE = missingFor(3);
+  try {
+    await system.applyAudio(cfg, { device: 'Studio\Device\TV\Render' }, { waitMs: 10000 });
+    const tries = fs.readFileSync(log, 'utf8').trim().split('\n').filter((l) => l.startsWith('audio|default|'));
+    assert.equal(tries.length, 4, 'three misses, then it worked');
+  } finally { delete process.env.FAKE_AUDIO_MISSING_FILE; delete process.env.FAKE_CTL_LOG; }
+});
+
+test('without a wait, or past the wait, a missing device is still an error', { skip }, async () => {
+  process.env.FAKE_AUDIO_MISSING_FILE = missingFor(1000);
+  try {
+    await assert.rejects(system.applyAudio(cfg, { device: 'X' }), /No active playback device matches: X/);
+    const started = Date.now();
+    await assert.rejects(system.applyAudio(cfg, { device: 'X' }, { waitMs: 1200 }), /No active playback device matches: X/);
+    assert.ok(Date.now() - started < 6000, 'gives up at the deadline');
+  } finally { delete process.env.FAKE_AUDIO_MISSING_FILE; }
+});
+
+test('applying a profile waits for its audio device and reports one that never shows up', { skip }, async () => {
+  const audio = { device: 'Studio\Device\TV\Render', spatial: 'off' };
+  await withServer({ FAKE_AUDIO_MISSING_FILE: missingFor(2) }, async (port, profiles) => {
+    fs.writeFileSync(path.join(profiles, 'Desk.audio.json'), JSON.stringify(audio));
+    const r = await request(port, 'POST', '/api/apply/Desk');
+    assert.equal(r.json.audio, 'applied');
+  });
+  await withServer({ FAKE_AUDIO_MISSING_FILE: missingFor(1000), AUDIO_WAIT_MS: '1500' }, async (port, profiles) => {
+    fs.writeFileSync(path.join(profiles, 'Desk.audio.json'), JSON.stringify(audio));
+    const r = await request(port, 'POST', '/api/apply/Desk');
+    assert.equal(r.status, 200, 'the layout still applied');
+    assert.equal(r.json.audio, 'failed');
+    assert.match(r.json.audioError, /No active playback device/);
+  });
+});

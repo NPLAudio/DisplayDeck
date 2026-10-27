@@ -217,7 +217,8 @@ async function handle(req, res) {
     }
     try {
       const a = JSON.parse(fs.readFileSync(path.join(cfg.profilesDir, `${name}.audio.json`), 'utf8').replace(/^﻿/, ''));
-      await system.applyAudio(cfg, a);
+      // Wait for the device: the layout just changed, and a display's own sound device may not be there yet.
+      await system.applyAudio(cfg, a, { waitMs: Number(process.env.AUDIO_WAIT_MS ?? 20000) });
       result.audio = 'applied';
     } catch (e) {
       if (e.code !== 'ENOENT') { result.audio = 'failed'; result.audioError = e.message; }
