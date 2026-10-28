@@ -20,12 +20,13 @@ below, and it does not rely on any other program being installed.
 
 The plugin is built with Node.js 24, Rollup, TypeScript and Elgato's CLI; none of them ship in the installer.
 
-DisplayDeck uses documented Windows APIs (display configuration, Core Audio) and one undocumented Windows
-COM interface (the audio policy interface that the Sound control panel also uses) to set the default playback
-device.
+DisplayDeck uses documented Windows APIs (display configuration, HDR and advanced color, Core Audio, the desktop
+wallpaper interface, global hotkeys) and two undocumented Windows interfaces that Windows itself uses: the audio
+policy COM interface (sets the default playback device) and the scaling calls of the display configuration API
+(read and set a display's scaling percentage). No third-party code is involved in either.
 
-`installer\build.ps1` fails if the package contains any executable other than DisplayDeck's own two and the
-Node.js runtime.
+`installer\build.ps1` fails if the package contains any executable other than DisplayDeck's own three (the tray
+app, the Windows helper and the command-line tool) and the Node.js runtime.
 
 ## NVIDIA driver (not bundled)
 
