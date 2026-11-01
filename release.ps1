@@ -35,6 +35,7 @@ Push-Location web; try { npm test; if ($LASTEXITCODE -ne 0) { throw 'web tests f
 
 Write-Host "Building the installer and the plugin..."
 & "$PSScriptRoot\installer\build.ps1" -Version $version
+Set-Location $PSScriptRoot   # build.ps1 leaves the session in the installer folder
 $msi = "installer\dist\DisplayDeck-$version.msi"
 $builtPlugin = 'streamdeck\dist\com.nplaudio.displaydeck.streamDeckPlugin'
 if (-not (Test-Path $msi)) { throw "$msi was not built" }
