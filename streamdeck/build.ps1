@@ -25,6 +25,9 @@ try {
         throw $msg
     }
 
+    # The plugin carries DisplayDeck's version, so a package always says which release it belongs to.
+    & "$PSScriptRoot\sync-version.ps1" | Out-Null
+
     # npm and rollup write progress to stderr, which Windows PowerShell 5.1 would treat as an error under 'Stop'.
     # Failures are caught by the exit-code checks below instead.
     $ErrorActionPreference = 'Continue'

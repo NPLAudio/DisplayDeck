@@ -218,7 +218,8 @@ The [homebridge-displaydeck](https://github.com/NPLAudio/homebridge-displaydeck)
 ## Stream Deck
 
 If Stream Deck 7.6 or newer is installed, the tray menu has **Install Stream Deck plugin...**. Choose it and
-confirm in Stream Deck. The plugin adds a **DisplayDeck** category with four keys, two dials and a status display:
+confirm in Stream Deck. The same plugin is also attached to every [release](../../releases) as a
+`DisplayDeck-StreamDeck-<version>.streamDeckPlugin` file; open it to install. The plugin adds a **DisplayDeck** category with four keys, two dials and a status display:
 
 | Key | What it does |
 | --- | --- |
@@ -285,8 +286,19 @@ dotnet tool install wix --version 5.0.2 --tool-path .\tools     # once
 .\build.ps1 -Version 2.0.0                                       # -> installer\dist\DisplayDeck-2.0.0.msi
 ```
 
-The build fails if the package contains any executable other than DisplayDeck's own two and the Node.js
+The build fails if the package contains any executable other than DisplayDeck's own three and the Node.js
 runtime.
+
+To publish a release (the installer and the Stream Deck plugin, each with a checksum): bump the version in
+`web\package.json`, commit and push to main, write the changes as a short bullet list in a text file, and run
+
+```
+.\release.ps1 -Notes notes.md -DryRun     # builds and checks everything, publishes nothing
+.\release.ps1 -Notes notes.md
+```
+
+The plugin takes DisplayDeck's version number, so both always match. It needs Node 24 for the plugin and the
+GitHub CLI (`gh`) signed in.
 
 ## Third-party software
 
