@@ -10,7 +10,7 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-Location $PSScriptRoot
 
-function Git { & git @args; if ($LASTEXITCODE -ne 0) { throw "git $($args -join ' ') failed" } }
+function Invoke-Git { & git.exe @args; if ($LASTEXITCODE -ne 0) { throw "git $($args -join ' ') failed" } }
 
 $version = (Get-Content web\package.json -Raw | ConvertFrom-Json).version
 if ($version -notmatch '^\d+\.\d+\.\d+$') { throw "web\package.json has an unexpected version: $version" }
@@ -26,9 +26,9 @@ if ((git status --porcelain | Measure-Object).Count -ne 0) {
     throw 'There are uncommitted changes (the plugin manifest version may have just changed). Commit and push them, then run this again.'
 }
 if ((git rev-parse --abbrev-ref HEAD) -ne 'main') { throw 'Releases are made from main.' }
-Git fetch origin main --quiet
+Invoke-Git fetch origin main --quiet
 if ((git rev-parse HEAD) -ne (git rev-parse origin/main)) { throw 'main is not the same as origin/main. Push (or pull) first.' }
-if (git tag -l $tag) { throw "The tag $tag already exists." }
+if (-not $DryRun -and (git tag -l $tag)) { throw "The tag $tag already exists." }
 
 Write-Host "Testing the web server..."
 Push-Location web; try { npm test; if ($LASTEXITCODE -ne 0) { throw 'web tests failed' } } finally { Pop-Location }
@@ -68,8 +68,8 @@ if ($DryRun) {
     return
 }
 
-Git tag $tag HEAD
-Git push origin $tag
+Invoke-Git tag $tag HEAD
+Invoke-Git push origin $tag
 & $gh release create $tag @assets --title "DisplayDeck $version" --notes-file $notesFile --latest
 if ($LASTEXITCODE -ne 0) { throw 'gh release create failed (the tag was pushed; the release can be created again with the same assets)' }
 Write-Host "Published $tag"
