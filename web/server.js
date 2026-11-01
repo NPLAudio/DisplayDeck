@@ -3,7 +3,8 @@ const http = require('http');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
-const { buildProfiles, scanFiles, writeLastApplied, currentStatus } = require('./lib/profiles');
+const { buildProfiles, scanFiles, writeLastApplied, currentStatus, layoutMatchesLive } = require('./lib/profiles');
+const lock = require('./lib/lock');
 const editor = require('./lib/editor');
 const options = require('./lib/options');
 const monitors = require('./lib/monitors');
@@ -205,8 +206,16 @@ async function handle(req, res) {
     const name = decodeURIComponent(apply[1]);
     const entry = scanFiles(cfg).find((f) => f.name === name); // only names that exist on disk
     if (!entry) return send(res, 404, { error: `No such profile: ${name}` });
-    const layout = await system.applyProfile(cfg, entry.file);
-    const result = { ok: true, audio: 'none', warnings: [...(layout.skipped || [])] };
+    // One layout change at a time. A shortcut, a Stream Deck key, HomeKit and the page can all fire together; two
+    // overlapping display changes make the screens flash and can leave a mix of both layouts.
+    return lock.exclusive(async () => {
+    editor.cancelTest(); // a layout being tried must not switch back over what was just chosen
+    const force = url.searchParams.get('force') === '1';
+    // Windows redoes the whole display mode even when nothing changes, which blanks or flickers some screens
+    // and overwrites the layout "Undo" returns to. Skip it when the screens already match.
+    const unchanged = !force && await layoutMatchesLive(cfg, entry.file);
+    const layout = unchanged ? { skipped: [] } : await system.applyProfile(cfg, entry.file);
+    const result = { ok: true, layout: unchanged ? 'unchanged' : 'applied', audio: 'none', warnings: [...(layout.skipped || [])] };
     const opts = options.read(cfg, name);
     if (Object.keys(opts.extras).length) {
       // HDR, scaling and wallpaper. A problem here is reported but does not undo the layout.
@@ -229,6 +238,7 @@ async function handle(req, res) {
       result.runErrors = await options.runPrograms(opts.run);
     }
     return send(res, 200, result);
+    });
   }
 
   // Keyboard shortcuts for profiles. The tray reads the list to register them and says which ones Windows refused.
@@ -258,8 +268,11 @@ async function handle(req, res) {
   }
   if (req.method === 'POST' && url.pathname === '/api/undo-layout') {
     if (!sameOrigin(req)) return send(res, 403, { error: 'Cross-origin request refused' });
-    const layout = await system.undoLayout(cfg);
-    return send(res, 200, { ok: true, warnings: layout.skipped || [] });
+    return lock.exclusive(async () => {
+      editor.cancelTest();
+      const layout = await system.undoLayout(cfg);
+      return send(res, 200, { ok: true, warnings: layout.skipped || [] });
+    });
   }
 
   // Monitor controls over DDC/CI. Changing input, brightness or power is open to any signed-in device (switching

@@ -6,6 +6,7 @@ const path = require('path');
 const { parseProfile, displayKey } = require('./parser');
 const system = require('./system');
 const options = require('./options');
+const lock = require('./lock');
 const { scanFiles, displayName, readJson } = require('./profiles');
 
 const MIN_TEST_SECONDS = Number(process.env.EDITOR_MIN_SECONDS) || 5;
@@ -210,7 +211,11 @@ function dropPending() {
   pending = null;
 }
 
-async function startTest(cfg, layout, base, seconds = 15) {
+function startTest(cfg, layout, base, seconds = 15) {
+  return lock.exclusive(() => startTestNow(cfg, layout, base, seconds));
+}
+
+async function startTestNow(cfg, layout, base, seconds) {
   const secs = Math.max(MIN_TEST_SECONDS, Math.min(60, Math.round(num(seconds, 15))));
   const tmp = system.tmpFile('.xml');
   const startedHere = !pending;
@@ -236,14 +241,22 @@ async function startTest(cfg, layout, base, seconds = 15) {
 }
 
 // Keeps the tried layout. "Undo layout change" then goes back to what was there before the test.
-async function keep() {
+function keep() {
+  return lock.exclusive(keepNow);
+}
+
+async function keepNow() {
   if (!pending) return { ok: true };
   const { before, cfg } = pending;
   try { await system.rememberLayout(cfg, before); } finally { dropPending(); }
   return { ok: true };
 }
 
-async function revert() {
+function revert() {
+  return lock.exclusive(revertNow);
+}
+
+async function revertNow() {
   if (!pending) return { ok: true };
   const { before, cfg } = pending;
   clearTimeout(pending.timer);
@@ -278,4 +291,8 @@ async function save(cfg, { name, layout, base, overwrite, copyAudioFrom }, valid
   }
 }
 
-module.exports = { editorState, validate, startTest, keep, revert, save, testStatus, cleanLayout, rotationOf };
+// Forget a layout that is being tried, so its timer cannot switch the screens back later. Used when something else
+// (a profile, Undo) changes the layout on purpose.
+function cancelTest() { dropPending(); }
+
+module.exports = { editorState, validate, startTest, keep, revert, save, testStatus, cancelTest, cleanLayout, rotationOf };

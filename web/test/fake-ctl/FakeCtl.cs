@@ -23,6 +23,12 @@ public static class FakeCtl
         {
             string text = File.ReadAllText(a[2]);
             if (text.Contains("\"width\":99")) { Console.Write("{\"error\":\"Windows rejected the layout (error 87). Nothing was changed.\"}"); return 1; }
+            string delay = Environment.GetEnvironmentVariable("FAKE_APPLY_DELAY_MS");
+            if (!string.IsNullOrEmpty(delay))
+            {
+                System.Threading.Thread.Sleep(int.Parse(delay));
+                if (!string.IsNullOrEmpty(log)) File.AppendAllText(log, "apply-done" + Environment.NewLine);
+            }
             Console.Write("{\"ok\":true,\"method\":\"full\",\"skipped\":[],\"matched\":[]}");
             return 0;
         }

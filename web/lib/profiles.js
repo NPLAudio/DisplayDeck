@@ -29,8 +29,8 @@ function readJson(file) {
 }
 
 let liveCache = { at: 0, value: null };
-async function getLive(cfg) {
-  if (Date.now() - liveCache.at < 3000) return liveCache.value;
+async function getLive(cfg, { fresh = false } = {}) {
+  if (!fresh && Date.now() - liveCache.at < 3000) return liveCache.value;
   let value = null;
   try {
     const parsed = parseProfile(await system.saveLiveXml(cfg));
@@ -38,6 +38,18 @@ async function getLive(cfg) {
   } catch (_) { /* live state unavailable: caller falls back to "last applied" */ }
   liveCache = { at: Date.now(), value };
   return value;
+}
+
+// True when the screens are already laid out as this profile says (same displays, sizes, positions and refresh rates).
+// Reads the live layout fresh, never from the short cache, because a switch may have just happened.
+async function layoutMatchesLive(cfg, file) {
+  try {
+    const live = await getLive(cfg, { fresh: true });
+    const e = readParsed(file, fs.statSync(file));
+    if (!live || !live.signature || !e.parsed) return false;
+    const sig = layoutSignature(e.parsed);
+    return !!sig && sig === live.signature;
+  } catch (_) { return false; }
 }
 
 function readLastApplied(cfg) {
@@ -155,4 +167,4 @@ async function currentStatus(cfg) {
   };
 }
 
-module.exports = { buildProfiles, scanFiles, writeLastApplied, currentStatus, displayName, readJson };
+module.exports = { buildProfiles, scanFiles, writeLastApplied, currentStatus, layoutMatchesLive, displayName, readJson };
