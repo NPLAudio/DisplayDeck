@@ -290,6 +290,9 @@ test("changing the device in the inspector refreshes the spatial list and rememb
 		const main = stub.state.devices[0]!.id;
 		h.appear(A.audio, "a1", {});
 		await h.waitFor(imageFor("a1"));
+		// The device list arrives with the first poll, which repaints the key. Choosing a device before that has
+		// nothing to look the name up in.
+		await h.waitFor(() => h.received.filter(imageFor("a1")).length >= 2);
 		h.inspectorOpens(A.audio, "a1");
 		h.changeSettings(A.audio, "a1", { device: main });
 		const saved = await h.waitFor((m) => m.event === "setSettings" && m.context === "a1");

@@ -2,13 +2,14 @@
 #   .\build.ps1 -Version 2.0.0  -> dist\DisplayDeck-<version>.msi
 # One-time setup (local tool, no global install):
 #   dotnet tool install wix --version 5.0.2 --tool-path .\tools
+#   .\tools\wix.exe extension add -g WixToolset.UI.wixext/5.0.2      (the setup wizard's pages)
 param([string]$Version = '2.0.0')
 $ErrorActionPreference = 'Stop'
 Set-Location $PSScriptRoot
 & .\stage.ps1
 New-Item -ItemType Directory -Force dist | Out-Null
 $out = "dist\DisplayDeck-$Version.msi"
-& .\tools\wix.exe build Product.wxs -d Version=$Version -arch x64 -o $out
+& .\tools\wix.exe build Product.wxs -ext WixToolset.UI.wixext -d Version=$Version -arch x64 -o $out
 if ($LASTEXITCODE -ne 0) { throw 'wix build failed' }
 
 # Independent check on the finished MSI: read its File table and refuse to produce an installer that

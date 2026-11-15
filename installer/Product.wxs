@@ -1,7 +1,12 @@
-﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
   <Package Name="DisplayDeck" Manufacturer="DisplayDeck"
            Version="$(var.Version)" UpgradeCode="D4A7B2E1-5C38-4F96-A1D0-7E3B9C6F2A85"
            Scope="perMachine" Compressed="yes">
+
+    <!-- The setup wizard: a license page (the agreement is eula.rtf, the MIT license plus a short notice), then Install.
+         Silent and basic-UI installs (/qn, /qb) skip it. Needs the WixToolset.UI.wixext extension (see build.ps1). -->
+    <ui:WixUI Id="WixUI_Minimal" />
+    <WixVariable Id="WixUILicenseRtf" Value="eula.rtf" />
 
     <MajorUpgrade DowngradeErrorMessage="A newer version of DisplayDeck is already installed." />
     <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
