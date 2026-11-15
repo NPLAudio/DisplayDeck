@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="brand/icon.svg" width="112" height="112" alt="DisplayDeck icon: two offset screens, one outlined and one lit green">
+</p>
+
 # DisplayDeck
 
 **Switch your whole desk setup with one tap.** DisplayDeck saves your monitor layouts and audio devices
@@ -110,7 +114,7 @@ ctl/         DisplayDeckCtl.exe source: display layouts (QueryDisplayConfig / Se
 tray/        DisplayDeck.exe source: tray icon, menu, starts the server, firewall prompt
 web/         the server and the page; parses profile files and runs the helper
 streamdeck/  the Stream Deck plugin (TypeScript, built with Node 24)
-brand/       the icon drawing code (app icon, tray, installer, plugin icons)
+brand/       the app icon (icon.svg, icon-512.png, DisplayDeck.ico) and the code that draws it for the tray, installer and plugin
 installer/   build scripts and the WiX definition for the MSI
 ```
 
